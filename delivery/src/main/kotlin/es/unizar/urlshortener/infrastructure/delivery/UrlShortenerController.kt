@@ -1,8 +1,10 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
+import es.unizar.urlshortener.core.Click
 import es.unizar.urlshortener.core.ClickProperties
 import es.unizar.urlshortener.core.ShortUrlProperties
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
+import es.unizar.urlshortener.core.usecases.InfoSummaryUseCase
 import es.unizar.urlshortener.core.usecases.LogClickUseCase
 import es.unizar.urlshortener.core.usecases.RedirectUseCase
 import org.springframework.hateoas.server.mvc.linkTo
@@ -36,6 +38,13 @@ interface UrlShortenerController {
      */
     fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
 
+
+    /**
+     * Returns a summary with users and clicks associated with a URI identified by [id]
+     *
+     * **Note**: Delivery of use case [InfoSummaryUseCase].
+     */
+    fun summary(id: String): ResponseEntity<SummaryDataOut>
 }
 
 /**
@@ -54,6 +63,10 @@ data class ShortUrlDataOut(
     val properties: Map<String, Any> = emptyMap()
 )
 
+data class SummaryDataOut(
+    val clicks: List<Click>
+)
+
 
 /**
  * The implementation of the controller.
@@ -64,7 +77,8 @@ data class ShortUrlDataOut(
 class UrlShortenerControllerImpl(
     val redirectUseCase: RedirectUseCase,
     val logClickUseCase: LogClickUseCase,
-    val createShortUrlUseCase: CreateShortUrlUseCase
+    val createShortUrlUseCase: CreateShortUrlUseCase,
+    val infoSummaryUseCase: InfoSummaryUseCase
 ) : UrlShortenerController {
 
     @GetMapping("/{id:(?!api|index).*}")
@@ -95,5 +109,16 @@ class UrlShortenerControllerImpl(
                 )
             )
             ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
+        }
+
+    @GetMapping("/api/link/{id}")
+    override fun summary(@PathVariable id: String): ResponseEntity<SummaryDataOut> =
+        infoSummaryUseCase.summary(
+            key = id
+        ).let {
+            val response = SummaryDataOut(
+                clicks = it
+            )
+            ResponseEntity<SummaryDataOut>(response,HttpStatus.OK)
         }
 }
