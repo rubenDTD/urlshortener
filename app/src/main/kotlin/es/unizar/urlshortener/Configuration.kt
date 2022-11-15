@@ -1,14 +1,13 @@
 package es.unizar.urlshortener
 
+import es.unizar.urlshortener.core.CsvService
+import es.unizar.urlshortener.core.usecases.CreateShortUrlCsvUseCaseImpl
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
 import es.unizar.urlshortener.core.usecases.LogClickUseCaseImpl
 import es.unizar.urlshortener.core.usecases.RedirectUseCaseImpl
 import es.unizar.urlshortener.infrastructure.delivery.HashServiceImpl
 import es.unizar.urlshortener.infrastructure.delivery.ValidatorServiceImpl
-import es.unizar.urlshortener.infrastructure.repositories.ClickEntityRepository
-import es.unizar.urlshortener.infrastructure.repositories.ClickRepositoryServiceImpl
-import es.unizar.urlshortener.infrastructure.repositories.ShortUrlEntityRepository
-import es.unizar.urlshortener.infrastructure.repositories.ShortUrlRepositoryServiceImpl
+import es.unizar.urlshortener.infrastructure.repositories.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -30,6 +29,9 @@ class ApplicationConfiguration(
     fun shortUrlRepositoryService() = ShortUrlRepositoryServiceImpl(shortUrlEntityRepository)
 
     @Bean
+    fun csvService() = CsvServiceImpl()
+
+    @Bean
     fun validatorService() = ValidatorServiceImpl()
 
     @Bean
@@ -43,5 +45,9 @@ class ApplicationConfiguration(
 
     @Bean
     fun createShortUrlUseCase() =
-        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService())
+            CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService())
+
+    @Bean
+    fun createShortUrlCsvUseCase() =
+        CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService(), csvService())
 }

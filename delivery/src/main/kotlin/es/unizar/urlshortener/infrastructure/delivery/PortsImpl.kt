@@ -20,7 +20,6 @@ class ValidatorServiceImpl : ValidatorService {
 /**
  * Implementation of the port [HashService].
  */
-@Suppress("UnstableApiUsage")
 class HashServiceImpl : HashService {
     override fun hasUrl(url: String) = Hashing.murmur3_32_fixed().hashString(url, StandardCharsets.UTF_8).toString()
 }

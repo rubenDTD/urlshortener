@@ -40,7 +40,12 @@ subprojects {
     }
 }
 
-project(":core") { }
+project(":core") {
+    dependencies {
+        "implementation"("org.springframework:spring-web:5.3.23")
+        "implementation"("com.opencsv:opencsv:5.2")
+    }
+}
 
 project(":repositories") {
     apply(plugin = "org.springframework.boot")
@@ -49,6 +54,8 @@ project(":repositories") {
     dependencies {
         "implementation"(project(":core"))
         "implementation"("org.springframework.boot:spring-boot-starter-data-jpa")
+        "implementation"("org.springframework:spring-web:5.3.23")
+        "implementation"("com.opencsv:opencsv:5.2")
     }
     tasks.getByName<BootJar>("bootJar") {
         enabled = false
@@ -66,6 +73,7 @@ project(":delivery") {
         "implementation"("com.fasterxml.jackson.module:jackson-module-kotlin")
         "implementation"("commons-validator:commons-validator:$commonsValidatorVersion")
         "implementation"("com.google.guava:guava:$guavaVersion")
+        //"implementation"("org.springframework:spring-web:5.3.23")
 
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")

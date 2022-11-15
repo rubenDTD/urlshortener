@@ -51,3 +51,8 @@ data class ClickProperties(
     val platform: String? = null,
     val country: String? = null
 )
+
+
+data class User(
+        val url: String
+)

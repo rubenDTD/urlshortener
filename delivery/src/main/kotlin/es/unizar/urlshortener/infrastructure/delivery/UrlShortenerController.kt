@@ -5,15 +5,15 @@ import es.unizar.urlshortener.core.ShortUrlProperties
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
 import es.unizar.urlshortener.core.usecases.LogClickUseCase
 import es.unizar.urlshortener.core.usecases.RedirectUseCase
+import es.unizar.urlshortener.core.User
+import es.unizar.urlshortener.core.usecases.CreateShortUrlCsvUseCase
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
 
@@ -36,6 +36,12 @@ interface UrlShortenerController {
      */
     fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
 
+    /**
+     * Creates a short url from details provided in [file].
+     *
+     * **Note**: Delivery of use case [User].
+     */
+    fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
 }
 
 /**
@@ -64,7 +70,8 @@ data class ShortUrlDataOut(
 class UrlShortenerControllerImpl(
     val redirectUseCase: RedirectUseCase,
     val logClickUseCase: LogClickUseCase,
-    val createShortUrlUseCase: CreateShortUrlUseCase
+    val createShortUrlUseCase: CreateShortUrlUseCase,
+    val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 ) : UrlShortenerController {
 
     @GetMapping("/{id:(?!api|index).*}")
@@ -96,4 +103,25 @@ class UrlShortenerControllerImpl(
             )
             ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
         }
+
+    @PostMapping("/api/bulk", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    override fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> {
+        val s = createShortUrlCsvUseCase.create(
+            file = file,
+            data = ShortUrlProperties(
+                ip = request.remoteAddr,
+                sponsor = null
+            )
+        )
+        val h = HttpHeaders()
+        val url = linkTo<UrlShortenerControllerImpl> { redirectTo(s.hash, request) }.toUri()
+        h.location = url
+        val response = ShortUrlDataOut(
+            url = url,
+            properties = mapOf(
+                "safe" to s.properties.safe
+            )
+        )
+        return ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
+    }
 }
