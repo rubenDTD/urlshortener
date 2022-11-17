@@ -16,8 +16,10 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
+import ru.chermenin.ua.UserAgent
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
+
 
 /**
  * The specification of the controller.
@@ -84,7 +86,9 @@ class UrlShortenerControllerImpl(
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
         redirectUseCase.redirectTo(id).let {
-            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
+            val uaString = request.getHeader("User-Agent")
+            val ua = UserAgent.parse(uaString)
+            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, browser = ua.browser.toString(), platform = ua.device))
             val h = HttpHeaders()
             h.location = URI.create(it.target)
             ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))

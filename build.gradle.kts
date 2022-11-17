@@ -66,6 +66,7 @@ project(":delivery") {
         "implementation"("com.fasterxml.jackson.module:jackson-module-kotlin")
         "implementation"("commons-validator:commons-validator:$commonsValidatorVersion")
         "implementation"("com.google.guava:guava:$guavaVersion")
+        "implementation"("ru.chermenin:kotlin-user-agents:0.2.2")
 
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
