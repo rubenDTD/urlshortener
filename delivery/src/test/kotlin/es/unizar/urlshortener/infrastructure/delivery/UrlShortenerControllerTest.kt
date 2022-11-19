@@ -43,6 +43,9 @@ class UrlShortenerControllerTest {
     @MockBean
     private lateinit var sponsorUseCase: SponsorUseCase
 
+    @MockBean
+    private lateinit var createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
+
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))

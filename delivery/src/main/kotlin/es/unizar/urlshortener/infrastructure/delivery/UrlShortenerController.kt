@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
 
@@ -42,6 +43,13 @@ interface UrlShortenerController {
      * **Note**: Delivery of use case [InfoSummaryUseCase].
      */
     fun summary(id: String): ResponseEntity<SummaryDataOut>
+
+    /**
+     * Creates a short url from details provided in [file].
+     *
+     * **Note**: Delivery of use case [User].
+     */
+    fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
 }
 
 /**
@@ -76,7 +84,8 @@ class UrlShortenerControllerImpl(
     val logClickUseCase: LogClickUseCase,
     val createShortUrlUseCase: CreateShortUrlUseCase,
     val infoSummaryUseCase: InfoSummaryUseCase,
-    val sponsorUseCase: SponsorUseCase
+    val sponsorUseCase: SponsorUseCase,
+    val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 ) : UrlShortenerController {
 
     @GetMapping("/api/banner/{id}")
@@ -133,4 +142,25 @@ class UrlShortenerControllerImpl(
             )
             ResponseEntity<SummaryDataOut>(response,HttpStatus.OK)
         }
+
+    @PostMapping("/api/bulk", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    override fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> {
+        val s = createShortUrlCsvUseCase.create(
+            file = file,
+            data = ShortUrlProperties(
+                ip = request.remoteAddr,
+                sponsor = null
+            )
+        )
+        val h = HttpHeaders()
+        val url = linkTo<UrlShortenerControllerImpl> { redirectTo(s.hash, request) }.toUri()
+        h.location = url
+        val response = ShortUrlDataOut(
+            url = url,
+            properties = mapOf(
+                "safe" to s.properties.safe
+            )
+        )
+        return ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
+    }
 }
