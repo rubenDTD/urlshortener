@@ -1,6 +1,5 @@
 package es.unizar.urlshortener
 
-import es.unizar.urlshortener.core.CsvService
 import es.unizar.urlshortener.core.usecases.CreateShortUrlCsvUseCaseImpl
 import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCaseImpl
 import es.unizar.urlshortener.core.usecases.LogClickUseCaseImpl
@@ -11,6 +10,7 @@ import es.unizar.urlshortener.infrastructure.repositories.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.stereotype.Component
 
 /**
  * Wires use cases with service implementations, and services implementations with repositories.

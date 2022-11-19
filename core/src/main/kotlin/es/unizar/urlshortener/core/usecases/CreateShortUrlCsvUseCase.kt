@@ -54,7 +54,6 @@ class CreateShortUrlCsvUseCaseImpl(private val shortUrlRepository: ShortUrlRepos
             else {
                 short += ""
                 short += "Invalid URL"
-                //throw InvalidUrlException(it.url)
             }
             out += short
         }
