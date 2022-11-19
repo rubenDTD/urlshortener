@@ -3,21 +3,18 @@ package es.unizar.urlshortener.infrastructure.delivery
 import es.unizar.urlshortener.core.Click
 import es.unizar.urlshortener.core.ClickProperties
 import es.unizar.urlshortener.core.ShortUrlProperties
-import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
-import es.unizar.urlshortener.core.usecases.InfoSummaryUseCase
-import es.unizar.urlshortener.core.usecases.LogClickUseCase
-import es.unizar.urlshortener.core.usecases.RedirectUseCase
+import es.unizar.urlshortener.core.usecases.*
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.stereotype.Controller
+import org.springframework.ui.Model
+import org.springframework.web.bind.annotation.*
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
+
 
 /**
  * The specification of the controller.
@@ -73,13 +70,28 @@ data class SummaryDataOut(
  *
  * **Note**: Spring Boot is able to discover this [RestController] without further configuration.
  */
-@RestController
+@Controller
 class UrlShortenerControllerImpl(
     val redirectUseCase: RedirectUseCase,
     val logClickUseCase: LogClickUseCase,
     val createShortUrlUseCase: CreateShortUrlUseCase,
-    val infoSummaryUseCase: InfoSummaryUseCase
+    val infoSummaryUseCase: InfoSummaryUseCase,
+    val sponsorUseCase: SponsorUseCase
 ) : UrlShortenerController {
+
+    @GetMapping("/api/banner/{id}")
+    fun banner(@PathVariable id: String, request: HttpServletRequest,model: Model): Any {
+        val redirection = redirectUseCase.redirectTo(id)
+        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
+        if(sponsorUseCase.hasSponsor(id)) {
+            model.addAttribute("uri", redirection.target)
+            return "banner"
+        } else {
+            val h = HttpHeaders()
+            h.location = URI.create(redirection.target)
+            return ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+        }
+    }
 
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =

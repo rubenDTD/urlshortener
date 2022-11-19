@@ -45,4 +45,7 @@ class ApplicationConfiguration(
 
     @Bean
     fun infoSummaryUseCase() = InfoSummaryUseCaseImpl(clickRepositoryService())
+
+    @Bean
+    fun sponsorUseCase() = SponsorUseCaseImpl(shortUrlRepositoryService())
 }
