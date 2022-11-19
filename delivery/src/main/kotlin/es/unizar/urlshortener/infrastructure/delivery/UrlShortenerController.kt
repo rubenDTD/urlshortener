@@ -1,21 +1,21 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
+import es.unizar.urlshortener.core.Click
 import es.unizar.urlshortener.core.ClickProperties
 import es.unizar.urlshortener.core.ShortUrlProperties
-import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
-import es.unizar.urlshortener.core.usecases.LogClickUseCase
-import es.unizar.urlshortener.core.usecases.RedirectUseCase
-import es.unizar.urlshortener.core.User
-import es.unizar.urlshortener.core.usecases.CreateShortUrlCsvUseCase
+import es.unizar.urlshortener.core.usecases.*
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.stereotype.Controller
+import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
+
 
 /**
  * The specification of the controller.
@@ -35,6 +35,14 @@ interface UrlShortenerController {
      * **Note**: Delivery of use case [CreateShortUrlUseCase].
      */
     fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
+
+
+    /**
+     * Returns a summary with users and clicks associated with a URI identified by [id]
+     *
+     * **Note**: Delivery of use case [InfoSummaryUseCase].
+     */
+    fun summary(id: String): ResponseEntity<SummaryDataOut>
 
     /**
      * Creates a short url from details provided in [file].
@@ -60,19 +68,39 @@ data class ShortUrlDataOut(
     val properties: Map<String, Any> = emptyMap()
 )
 
+data class SummaryDataOut(
+    val clicks: List<Click>
+)
+
 
 /**
  * The implementation of the controller.
  *
  * **Note**: Spring Boot is able to discover this [RestController] without further configuration.
  */
-@RestController
+@Controller
 class UrlShortenerControllerImpl(
     val redirectUseCase: RedirectUseCase,
     val logClickUseCase: LogClickUseCase,
     val createShortUrlUseCase: CreateShortUrlUseCase,
+    val infoSummaryUseCase: InfoSummaryUseCase,
+    val sponsorUseCase: SponsorUseCase,
     val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 ) : UrlShortenerController {
+
+    @GetMapping("/api/banner/{id}")
+    fun banner(@PathVariable id: String, request: HttpServletRequest,model: Model): Any {
+        val redirection = redirectUseCase.redirectTo(id)
+        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
+        if(sponsorUseCase.hasSponsor(id)) {
+            model.addAttribute("uri", redirection.target)
+            return "banner"
+        } else {
+            val h = HttpHeaders()
+            h.location = URI.create(redirection.target)
+            return ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+        }
+    }
 
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
@@ -102,6 +130,17 @@ class UrlShortenerControllerImpl(
                 )
             )
             ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
+        }
+
+    @GetMapping("/api/link/{id}")
+    override fun summary(@PathVariable id: String): ResponseEntity<SummaryDataOut> =
+        infoSummaryUseCase.summary(
+            key = id
+        ).let {
+            val response = SummaryDataOut(
+                clicks = it
+            )
+            ResponseEntity<SummaryDataOut>(response,HttpStatus.OK)
         }
 
     @PostMapping("/api/bulk", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])

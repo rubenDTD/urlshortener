@@ -14,6 +14,15 @@ class ClickRepositoryServiceImpl(
     private val clickEntityRepository: ClickEntityRepository
 ) : ClickRepositoryService {
     override fun save(cl: Click): Click = clickEntityRepository.save(cl.toEntity()).toDomain()
+
+    override fun summary(key: String): List<Click> {
+        val clicks = clickEntityRepository.findByHash(key)
+        val clicksDom = mutableListOf<Click>()
+        for (click in clicks) {
+            clicksDom.add(click.toDomain())
+        }
+        return clicksDom
+    }
 }
 
 /**

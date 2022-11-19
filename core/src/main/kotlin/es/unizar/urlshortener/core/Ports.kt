@@ -9,6 +9,7 @@ import java.io.BufferedReader
  */
 interface ClickRepositoryService {
     fun save(cl: Click): Click
+    fun summary(key: String): List<Click>
 }
 
 /**
