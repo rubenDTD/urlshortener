@@ -27,7 +27,8 @@ interface UrlShortenerController {
      *
      * **Note**: Delivery of use cases [RedirectUseCase] and [LogClickUseCase].
      */
-    fun redirectTo(id: String, request: HttpServletRequest): ResponseEntity<Void>
+    //fun redirectTo(id: String, request: HttpServletRequest): ResponseEntity<Void>
+    fun redirectTo(id: String, request: HttpServletRequest, model: Model? = null): Any
 
     /**
      * Creates a short url from details provided in [data].
@@ -88,28 +89,28 @@ class UrlShortenerControllerImpl(
     val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 ) : UrlShortenerController {
 
-    @GetMapping("/api/banner/{id}")
-    fun banner(@PathVariable id: String, request: HttpServletRequest,model: Model): Any {
+    @GetMapping("/{id:(?!api|index).*}")
+    override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, model: Model?): Any {
         val redirection = redirectUseCase.redirectTo(id)
         logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
-        if(sponsorUseCase.hasSponsor(id)) {
-            model.addAttribute("uri", redirection.target)
-            return "banner"
+        return if(sponsorUseCase.hasSponsor(id)) {
+            model?.addAttribute("uri", redirection.target)
+            "banner"
         } else {
             val h = HttpHeaders()
             h.location = URI.create(redirection.target)
-            return ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+            ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
         }
     }
 
-    @GetMapping("/{id:(?!api|index).*}")
+    /*@GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
         redirectUseCase.redirectTo(id).let {
             logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
             val h = HttpHeaders()
             h.location = URI.create(it.target)
             ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
-        }
+        }*/
 
     @PostMapping("/api/link", consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE])
     override fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> =
