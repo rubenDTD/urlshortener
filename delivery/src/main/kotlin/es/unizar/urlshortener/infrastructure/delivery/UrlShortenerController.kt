@@ -27,7 +27,6 @@ interface UrlShortenerController {
      *
      * **Note**: Delivery of use cases [RedirectUseCase] and [LogClickUseCase].
      */
-    //fun redirectTo(id: String, request: HttpServletRequest): ResponseEntity<Void>
     fun redirectTo(id: String, request: HttpServletRequest, model: Model? = null): Any
 
     /**
