@@ -37,6 +37,7 @@ data class ShortUrlProperties(
     val ip: String? = null,
     val sponsor: String? = null,
     val safe: Boolean = true,
+    val spam: Boolean = false,
     val owner: String? = null,
     val country: String? = null
 )

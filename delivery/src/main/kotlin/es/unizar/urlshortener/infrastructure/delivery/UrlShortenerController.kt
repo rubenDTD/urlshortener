@@ -3,10 +3,7 @@ package es.unizar.urlshortener.infrastructure.delivery
 import es.unizar.urlshortener.core.Click
 import es.unizar.urlshortener.core.ClickProperties
 import es.unizar.urlshortener.core.ShortUrlProperties
-import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
-import es.unizar.urlshortener.core.usecases.InfoSummaryUseCase
-import es.unizar.urlshortener.core.usecases.LogClickUseCase
-import es.unizar.urlshortener.core.usecases.RedirectUseCase
+import es.unizar.urlshortener.core.usecases.*
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -80,7 +77,8 @@ class UrlShortenerControllerImpl(
     val redirectUseCase: RedirectUseCase,
     val logClickUseCase: LogClickUseCase,
     val createShortUrlUseCase: CreateShortUrlUseCase,
-    val infoSummaryUseCase: InfoSummaryUseCase
+    val infoSummaryUseCase: InfoSummaryUseCase,
+    val blackListUseCase: BlackListUseCase
 ) : UrlShortenerController {
 
     @GetMapping("/{id:(?!api|index).*}")
@@ -88,10 +86,15 @@ class UrlShortenerControllerImpl(
         redirectUseCase.redirectTo(id).let {
             val uaString = request.getHeader("User-Agent")
             val ua = UserAgent.parse(uaString)
-            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, browser = ua.browser.toString(), platform = ua.device))
+            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr,
+                browser = ua.browser.toString(), platform = ua.os.toString()))
             val h = HttpHeaders()
             h.location = URI.create(it.target)
-            ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
+            if (blackListUseCase.checkSpam(id)){
+                ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
+            }else {
+                ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
+            }
         }
 
     @PostMapping("/api/link", consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE])
@@ -100,7 +103,8 @@ class UrlShortenerControllerImpl(
             url = data.url,
             data = ShortUrlProperties(
                 ip = request.remoteAddr,
-                sponsor = data.sponsor
+                sponsor = data.sponsor,
+                spam = blackListUseCase.checkBlackList(request.remoteAddr) || blackListUseCase.checkBlackList(data.url)
             )
         ).let {
             val h = HttpHeaders()
