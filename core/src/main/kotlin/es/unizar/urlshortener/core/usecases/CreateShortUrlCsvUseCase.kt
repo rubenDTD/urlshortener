@@ -47,7 +47,7 @@ class CreateShortUrlCsvUseCaseImpl(private val shortUrlRepository: ShortUrlRepos
                                 sponsor = data.sponsor
                         )
                 )
-                if (it.url.equals(urls[0])) first = su
+                if (it.url == urls[0].url) first = su
                 short += ""
                 shortUrlRepository.save(su)
             }

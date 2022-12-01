@@ -66,6 +66,7 @@ data class ShortUrlDataIn(
  */
 data class ShortUrlDataOut(
     val url: URI? = null,
+    val sponsor: String? = null,
     val properties: Map<String, Any> = emptyMap()
 )
 
@@ -92,7 +93,7 @@ class UrlShortenerControllerImpl(
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, model: Model?): Any {
         val redirection = redirectUseCase.redirectTo(id)
-        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
+        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target))
         return if(sponsorUseCase.hasSponsor(id)) {
             model?.addAttribute("uri", redirection.target)
             "banner"
@@ -102,15 +103,6 @@ class UrlShortenerControllerImpl(
             ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
         }
     }
-
-    /*@GetMapping("/{id:(?!api|index).*}")
-    override fun redirectTo(@PathVariable id: String, request: HttpServletRequest): ResponseEntity<Void> =
-        redirectUseCase.redirectTo(id).let {
-            logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
-            val h = HttpHeaders()
-            h.location = URI.create(it.target)
-            ResponseEntity<Void>(h, HttpStatus.valueOf(it.mode))
-        }*/
 
     @PostMapping("/api/link", consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE])
     override fun shortener(data: ShortUrlDataIn, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> =
@@ -126,6 +118,7 @@ class UrlShortenerControllerImpl(
             h.location = url
             val response = ShortUrlDataOut(
                 url = url,
+                sponsor = data.sponsor,
                 properties = mapOf(
                     "safe" to it.properties.safe
                 )
