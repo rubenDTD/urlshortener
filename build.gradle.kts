@@ -7,7 +7,15 @@ plugins {
     kotlin("jvm") version "1.7.10" apply false
     kotlin("plugin.spring") version "1.7.10" apply false
     kotlin("plugin.jpa") version "1.7.10" apply false
-    id("org.sonarqube") version "3.4.0.2513"
+    id("org.sonarqube") version "3.5.0.2730"
+}
+
+sonarqube {
+    properties {
+        property("sonar.projectKey", "rubenDTD_urlshortener")
+        property("sonar.organization", "url-shortener")
+        property("sonar.host.url", "https://sonarcloud.io")
+    }
 }
 
 group = "es.unizar"
