@@ -89,7 +89,7 @@ class UrlShortenerControllerImpl(
     val logClickUseCase: LogClickUseCase,
     val createShortUrlUseCase: CreateShortUrlUseCase,
     val infoSummaryUseCase: InfoSummaryUseCase,
-    val blackListUseCase: BlackListUseCase
+    val blackListUseCase: BlackListUseCase,
     val sponsorUseCase: SponsorUseCase,
     val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 ) : UrlShortenerController {
