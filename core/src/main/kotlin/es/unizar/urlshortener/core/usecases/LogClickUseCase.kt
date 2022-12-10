@@ -24,6 +24,8 @@ class LogClickUseCaseImpl(
             hash = key,
             properties = ClickProperties(
                 ip = data.ip,
+                browser = data.browser,
+                platform = data.platform
                 referrer = data.referrer
             )
         )

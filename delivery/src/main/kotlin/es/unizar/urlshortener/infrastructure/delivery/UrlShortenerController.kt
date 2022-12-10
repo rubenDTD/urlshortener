@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import ru.chermenin.ua.UserAgent
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
@@ -88,6 +89,7 @@ class UrlShortenerControllerImpl(
     val logClickUseCase: LogClickUseCase,
     val createShortUrlUseCase: CreateShortUrlUseCase,
     val infoSummaryUseCase: InfoSummaryUseCase,
+    val blackListUseCase: BlackListUseCase
     val sponsorUseCase: SponsorUseCase,
     val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 ) : UrlShortenerController {
@@ -96,12 +98,17 @@ class UrlShortenerControllerImpl(
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, model: Model?): Any {
         val redirection = redirectUseCase.redirectTo(id)
-        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target))
-        return if(sponsorUseCase.hasSponsor(id)) {
+        val uaString = request.getHeader("User-Agent")
+        val ua = UserAgent.parse(uaString)
+        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target, ua.browser.toString(), platform = ua.os.toString()))
+        val h = HttpHeaders()
+        if (blackListUseCase.checkSpam(id)){
+            ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
+        }
+      return if(sponsorUseCase.hasSponsor(id)) {
             model?.addAttribute("uri", redirection.target)
             "banner"
         } else {
-            val h = HttpHeaders()
             h.location = URI.create(redirection.target)
             ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
         }
@@ -114,7 +121,8 @@ class UrlShortenerControllerImpl(
             url = data.url,
             data = ShortUrlProperties(
                 ip = request.remoteAddr,
-                sponsor = data.sponsor
+                sponsor = data.sponsor,
+                spam = blackListUseCase.checkBlackList(request.remoteAddr) || blackListUseCase.checkBlackList(data.url)
             )
         ).let {
             val h = HttpHeaders()
