@@ -1,10 +1,7 @@
 package es.unizar.urlshortener.infrastructure.delivery
 
 import es.unizar.urlshortener.core.*
-import es.unizar.urlshortener.core.usecases.CreateShortUrlUseCase
-import es.unizar.urlshortener.core.usecases.InfoSummaryUseCase
-import es.unizar.urlshortener.core.usecases.LogClickUseCase
-import es.unizar.urlshortener.core.usecases.RedirectUseCase
+import es.unizar.urlshortener.core.usecases.*
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.never
@@ -41,7 +38,13 @@ class UrlShortenerControllerTest {
     private lateinit var createShortUrlUseCase: CreateShortUrlUseCase
 
     @MockBean
-    private lateinit var InfoSummaryUseCase: InfoSummaryUseCase
+    private lateinit var infoSummaryUseCase: InfoSummaryUseCase
+
+    @MockBean
+    private lateinit var sponsorUseCase: SponsorUseCase
+
+    @MockBean
+    private lateinit var createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
@@ -51,7 +54,7 @@ class UrlShortenerControllerTest {
             .andExpect(status().isTemporaryRedirect)
             .andExpect(redirectedUrl("http://example.com/"))
 
-        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1"))
+        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/"))
     }
 
     @Test

@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+p {
+  text-align: center;
+  font-size: 60px;
+  margin-top: 0px;
+}
+</style>
+</head>
+<body>
+
+<p id="demo"></p>
+
+<script th:inline="javascript">
+// Set the date we're counting down to
+var countDownSecs = 5;
+var uri = [[${uri}]];
+
+// Update the count-down every 1 second
+var x = setInterval(function() {
+
+  // Output the result in an element with id="demo"
+  document.getElementById("demo").innerHTML = "Redirecting in: " + countDownSecs + " seconds";
+
+  // If the count-down is over, redirect to real URI
+  if (countDownSecs < 0) {
+    location.replace(uri)
+    clearInterval(x);
+    document.getElementById("demo").innerHTML = "Done!";
+
+  }
+  countDownSecs --
+},1000);
+</script>
+
+</body>
+</html>

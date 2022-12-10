@@ -26,6 +26,7 @@ class LogClickUseCaseImpl(
                 ip = data.ip,
                 browser = data.browser,
                 platform = data.platform
+                referrer = data.referrer
             )
         )
         clickRepository.save(cl)
