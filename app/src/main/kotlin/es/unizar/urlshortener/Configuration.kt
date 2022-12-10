@@ -7,7 +7,6 @@ import es.unizar.urlshortener.infrastructure.repositories.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.stereotype.Component
 
 /**
  * Wires use cases with service implementations, and services implementations with repositories.

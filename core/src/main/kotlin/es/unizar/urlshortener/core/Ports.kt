@@ -1,6 +1,5 @@
 package es.unizar.urlshortener.core
 
-import com.opencsv.bean.CsvToBean
 import org.springframework.web.multipart.MultipartFile
 import java.io.BufferedReader
 
