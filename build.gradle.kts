@@ -82,6 +82,11 @@ project(":delivery") {
         "implementation"("com.fasterxml.jackson.module:jackson-module-kotlin")
         "implementation"("commons-validator:commons-validator:$commonsValidatorVersion")
         "implementation"("com.google.guava:guava:$guavaVersion")
+
+        "implementation"("org.springdoc:springdoc-openapi-data-rest:1.6.0")
+        "implementation"("org.springdoc:springdoc-openapi-ui:1.6.4")
+        "implementation"("org.springdoc:springdoc-openapi-kotlin:1.6.0")
+
         //"implementation"("org.springframework:spring-web:5.3.23")
 
         "implementation"("org.springframework.boot:spring-boot-starter-thymeleaf")
