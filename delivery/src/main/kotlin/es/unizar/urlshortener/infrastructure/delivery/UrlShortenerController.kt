@@ -100,7 +100,8 @@ class UrlShortenerControllerImpl(
         val redirection = redirectUseCase.redirectTo(id)
         val uaString = request.getHeader("User-Agent")
         val ua = UserAgent.parse(uaString)
-        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target, ua.browser.toString(), platform = ua.os.toString()))
+        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target,
+            ua.browser.toString(), platform = ua.os.toString()))
         val h = HttpHeaders()
         if (blackListUseCase.checkSpam(id)){
             ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)

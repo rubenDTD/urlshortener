@@ -21,7 +21,7 @@ class BlackListUseCaseImpl(
     private val shortUrlRepository: ShortUrlRepositoryService
 ) : BlackListUseCase {
     override fun checkBlackList(key: String) : Boolean {
-        val blackList = readList("./app/blackList.txt")
+        val blackList = readList("blackList.txt")
         return blackList.contains(key)
     }
 

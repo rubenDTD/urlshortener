@@ -1,29 +1,35 @@
 <!DOCTYPE HTML>
-<html xmlns:th="http://www.w3.org/1999/xhtml">
+<html xmlns:th="https://thymeleaf.org">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <style>
-p {
-  text-align: center;
-  font-size: 60px;
-  margin-top: 0px;
-}
+
 </style>
 </head>
 <body>
 
-<p id="demo"></p>
+<nav class="navbar p-3 text-center" style="background-color: #e3f2fd";>
+    <h1 id="demo" class="fs-1">
+        Redirecting in 5 seconds...
+    </h1>
+</nav>
+
+<div class ="text-center position-absolute start-50 translate-middle-x p-3">
+    <img src="https://64.media.tumblr.com/10e40c81ec5e10676422ca24883a96c2/tumblr_mkv7ovilc21rjenv2o1_400.gif" width="400"/>
+</div>
 
 <script th:inline="javascript">
 // Set the date we're counting down to
-var countDownSecs = 5;
+var countDownSecs = 4;
 var uri = [[${uri}]];
 
 // Update the count-down every 1 second
 var x = setInterval(function() {
 
   // Output the result in an element with id="demo"
-  document.getElementById("demo").innerHTML = "Redirecting in: " + countDownSecs + " seconds";
+  document.getElementById("demo").innerHTML = "Redirecting in " + countDownSecs + " seconds...";
 
   // If the count-down is over, redirect to real URI
   if (countDownSecs < 0) {
