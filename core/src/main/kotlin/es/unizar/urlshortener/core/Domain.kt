@@ -14,11 +14,17 @@ data class Click(
 /**
  * A [ShortUrl] is the mapping between a remote url identified by [redirection] and a local short url identified by [hash].
  */
+
 data class ShortUrl(
-    val hash: String,
-    val redirection: Redirection,
-    val created: OffsetDateTime = OffsetDateTime.now(),
-    val properties: ShortUrlProperties = ShortUrlProperties()
+        var hash: String,
+        val redirection: Redirection,
+        val created: OffsetDateTime = OffsetDateTime.now(),
+        val properties: ShortUrlProperties = ShortUrlProperties()
+)
+
+data class CsvResponse(
+        var shortUrl: ShortUrl,
+        var message: String
 )
 
 /**
@@ -51,7 +57,6 @@ data class ClickProperties(
     val platform: String? = null,
     val country: String? = null
 )
-
 
 data class User(
         val url: String

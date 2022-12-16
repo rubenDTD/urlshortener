@@ -4,6 +4,7 @@ import es.unizar.urlshortener.core.Click
 import es.unizar.urlshortener.core.ClickProperties
 import es.unizar.urlshortener.core.ShortUrlProperties
 import es.unizar.urlshortener.core.usecases.*
+import jdk.jfr.ContentType
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import java.io.File
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
 
@@ -45,11 +47,19 @@ interface UrlShortenerController {
     fun summary(id: String): ResponseEntity<SummaryDataOut>
 
     /**
+     * ... [id].
+     * ... [model]
+     *
+     * **Note**: Delivery of use case [any].
+     */
+    fun banner(@PathVariable id: String, request: HttpServletRequest,model: Model): Any
+
+    /**
      * Creates a short url from details provided in [file].
      *
-     * **Note**: Delivery of use case [User].
+     * **Note**: Delivery of use case [ShortUrlDataOut].
      */
-    fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut>
+    fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<Any>
 }
 
 /**
@@ -89,16 +99,16 @@ class UrlShortenerControllerImpl(
 ) : UrlShortenerController {
 
     @GetMapping("/api/banner/{id}")
-    fun banner(@PathVariable id: String, request: HttpServletRequest,model: Model): Any {
+    override fun banner(@PathVariable id: String, request: HttpServletRequest, model: Model): Any {
         val redirection = redirectUseCase.redirectTo(id)
         logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
-        if(sponsorUseCase.hasSponsor(id)) {
+        return if(sponsorUseCase.hasSponsor(id)) {
             model.addAttribute("uri", redirection.target)
-            return "banner"
+            "banner"
         } else {
             val h = HttpHeaders()
             h.location = URI.create(redirection.target)
-            return ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+            ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
         }
     }
 
@@ -144,23 +154,41 @@ class UrlShortenerControllerImpl(
         }
 
     @PostMapping("/api/bulk", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    override fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<ShortUrlDataOut> {
-        val s = createShortUrlCsvUseCase.create(
-            file = file,
-            data = ShortUrlProperties(
-                ip = request.remoteAddr,
-                sponsor = null
-            )
-        )
+    override fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<Any> {
+        File("salida.csv").delete()
         val h = HttpHeaders()
-        val url = linkTo<UrlShortenerControllerImpl> { redirectTo(s.hash, request) }.toUri()
-        h.location = url
-        val response = ShortUrlDataOut(
-            url = url,
-            properties = mapOf(
-                "safe" to s.properties.safe
-            )
-        )
-        return ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
+        if(file.isEmpty)  {
+            h.add("Warning", "Fichero vacío")
+            return ResponseEntity<Any>("", h, HttpStatus.OK)
+        } else {
+            try {
+                val s = createShortUrlCsvUseCase.create(
+                        file = file,
+                        data = ShortUrlProperties(
+                                ip = request.remoteAddr,
+                                sponsor = null
+                        )
+                )
+                val url: URI
+                if(s.shortUrl.hash.isEmpty()) {
+                    h.add("Warning", "No valid URLs found")
+                    return ResponseEntity<Any>("", h, HttpStatus.CREATED)
+                }else {
+                    url = linkTo<UrlShortenerControllerImpl> { redirectTo(s.shortUrl.hash, request) }.toUri()
+                    h.location = url
+                }
+                h.set("content_type", "text/csv")
+                val response = ShortUrlDataOut(
+                        url = url,
+                        properties = mapOf(
+                                "safe" to s.shortUrl.properties.safe
+                        )
+                )
+                return ResponseEntity<Any>(response, h, HttpStatus.CREATED)
+            } catch(e: Exception) {
+                h.add("Error", "Problema con la lectura del csv")
+                return ResponseEntity<Any>("", h, HttpStatus.BAD_REQUEST)
+            }
+        }
     }
 }
