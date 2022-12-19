@@ -35,7 +35,12 @@ $(document).ready(
                 })
                   .then((response) => response.json())
                   .then((result) => {
-                    console.log('Success:', result);
+                    console.log(result);
+                    document.getElementById("shortus-result").innerHTML =
+                        "<div class='alert alert-success lead'>First URI ->"
+                        + "<a target='_blank' href='" + result.url + "'>"
+                        + result.url
+                        + "</a></div>"
                   })
                   .catch((error) => {
                     console.error('Error:', error);

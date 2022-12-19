@@ -7,17 +7,16 @@ import es.unizar.urlshortener.core.usecases.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.hateoas.server.mvc.linkTo
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
-import ru.chermenin.ua.UserAgent
+import org.springframework.http.*
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import ru.chermenin.ua.UserAgent
 import java.net.URI
+import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 
 
 /**
@@ -30,7 +29,7 @@ interface UrlShortenerController {
      *
      * **Note**: Delivery of use cases [RedirectUseCase] and [LogClickUseCase].
      */
-    fun redirectTo(id: String, request: HttpServletRequest, model: Model? = null): Any
+    fun redirectTo(id: String, request: HttpServletRequest, response: HttpServletResponse? = null, model: Model? = null): Any
 
     /**
      * Creates a short url from details provided in [data].
@@ -96,7 +95,8 @@ class UrlShortenerControllerImpl(
 
     @Operation(summary = "Redirect to URI")
     @GetMapping("/{id:(?!api|index).*}")
-    override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, model: Model?): Any {
+    override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, response: HttpServletResponse?,
+                            model: Model?): Any {
         val redirection = redirectUseCase.redirectTo(id)
         val uaString = request.getHeader("User-Agent")
         val ua = UserAgent.parse(uaString)
@@ -106,7 +106,11 @@ class UrlShortenerControllerImpl(
 
       return if(sponsorUseCase.hasSponsor(id)) {
             model?.addAttribute("uri", redirection.target)
-            "banner"
+          val cacheControl = CacheControl.maxAge(120, TimeUnit.SECONDS)
+              .noTransform()
+              .mustRevalidate().headerValue
+          response?.addHeader("Cache-Control", cacheControl);
+          "banner"
         } else {
             h.location = URI.create(redirection.target)
           if (blackListUseCase.isSpam(id)){
