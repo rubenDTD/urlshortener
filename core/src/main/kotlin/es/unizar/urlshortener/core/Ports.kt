@@ -20,11 +20,7 @@ interface ShortUrlRepositoryService {
 }
 
 interface CsvService {
-    fun throwIfFileEmpty(file: MultipartFile)
-    fun createCSVToBean(fileReader: BufferedReader?): List<User>
-    fun closeFileReader(fileReader: BufferedReader?)
-    fun uploadCsvFile(file: MultipartFile): List<User>
-    fun writeCsvFile(urls: Array<Array<String>>)
+    fun writeCsvFile(url: String)
 }
 
 /**
