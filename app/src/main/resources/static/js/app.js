@@ -8,11 +8,19 @@ $(document).ready(
                     url: "/api/link",
                     data: $(this).serialize(),
                     success: function (msg, status, request) {
+                        let location = request.getResponseHeader('Location').split("/")
+                        let hash = location[location.length-1]
+                        console.log(hash)
                         $("#shortme-result").html(
                             "<div class='alert alert-success lead'>Short URI -> <a target='_blank' href='"
                             + request.getResponseHeader('Location')
                             + "'>"
                             + request.getResponseHeader('Location')
+                            + "</a></div>"
+                            + "<div class='alert alert-success lead'>URI Summary -> <a target='_blank' href='"
+                            + request.getResponseHeader('Location').replace(hash,"api/link/"+ hash)
+                            + "'>"
+                            + request.getResponseHeader('Location').replace(hash,"api/link/"+ hash)
                             + "</a></div>");
                     },
                     error: function () {
@@ -35,11 +43,17 @@ $(document).ready(
                 })
                   .then((response) => response.json())
                   .then((result) => {
-                    console.log(result);
+                    let location = result.url.split("/")
+                    let hash = location[location.length-1]
                     document.getElementById("shortus-result").innerHTML =
                         "<div class='alert alert-success lead'>First URI ->"
                         + "<a target='_blank' href='" + result.url + "'>"
                         + result.url
+                        + "</a></div>"
+                        + "<div class='alert alert-success lead'>First URI Summary -> <a target='_blank' href='"
+                        + result.url.replace(hash,"api/link/"+ hash)
+                        + "'>"
+                        + result.url.replace(hash,"api/link/"+ hash)
                         + "</a></div>"
                   })
                   .catch((error) => {

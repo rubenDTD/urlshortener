@@ -6,7 +6,6 @@ import es.unizar.urlshortener.core.ShortUrlProperties
 import es.unizar.urlshortener.core.usecases.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
-import jdk.jfr.ContentType
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.*
 import org.springframework.stereotype.Controller
@@ -105,20 +104,20 @@ class UrlShortenerControllerImpl(
             ua.browser.toString(), platform = ua.os.toString()))
         val h = HttpHeaders()
 
-      return if(sponsorUseCase.hasSponsor(id)) {
-            model?.addAttribute("uri", redirection.target)
-          val cacheControl = CacheControl.maxAge(120, TimeUnit.SECONDS)
-              .noTransform()
-              .mustRevalidate().headerValue
-          response?.addHeader("Cache-Control", cacheControl);
-          "banner"
+        return if(blackListUseCase.isSpam(id)) {
+            ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
         } else {
-            h.location = URI.create(redirection.target)
-          if (blackListUseCase.isSpam(id)){
-              ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
-          }else{
-              ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
-          }
+            if (sponsorUseCase.hasSponsor(id)){
+                model?.addAttribute("uri", redirection.target)
+                val cacheControl = CacheControl.maxAge(120, TimeUnit.SECONDS)
+                    .noTransform()
+                    .mustRevalidate().headerValue
+                response?.addHeader("Cache-Control", cacheControl);
+                "banner"
+            } else {
+                h.location = URI.create(redirection.target)
+                ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+            }
         }
     }
 
@@ -153,15 +152,15 @@ class UrlShortenerControllerImpl(
 
     @Operation(summary = "Return clicks summary")
     @GetMapping("/api/link/{id}")
-    override fun summary(@PathVariable id: String): ResponseEntity<SummaryDataOut> =
-        infoSummaryUseCase.summary(
-            key = id
-        ).let {
-            val response = SummaryDataOut(
-                clicks = it
-            )
+    override fun summary(@PathVariable id: String): ResponseEntity<SummaryDataOut> {
+        val h = HttpHeaders()
+        return if(blackListUseCase.isSpam(id)) {
+            ResponseEntity<SummaryDataOut>(h, HttpStatus.FORBIDDEN)
+        } else {
+            val response = SummaryDataOut(infoSummaryUseCase.summary(id))
             ResponseEntity<SummaryDataOut>(response,HttpStatus.OK)
         }
+    }
 
     @Operation(summary = "Process CSV file")
     @PostMapping("/api/bulk", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
