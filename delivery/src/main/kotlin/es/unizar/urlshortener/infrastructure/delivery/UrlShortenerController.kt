@@ -103,15 +103,17 @@ class UrlShortenerControllerImpl(
         logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target,
             ua.browser.toString(), platform = ua.os.toString()))
         val h = HttpHeaders()
-        if (blackListUseCase.checkSpam(id)){
-            ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
-        }
+
       return if(sponsorUseCase.hasSponsor(id)) {
             model?.addAttribute("uri", redirection.target)
             "banner"
         } else {
             h.location = URI.create(redirection.target)
-            ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+          if (blackListUseCase.isSpam(id)){
+              ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
+          }else{
+              ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+          }
         }
     }
 
@@ -133,10 +135,15 @@ class UrlShortenerControllerImpl(
                 url = url,
                 sponsor = data.sponsor,
                 properties = mapOf(
-                    "safe" to it.properties.safe
+                    "safe" to it.properties.safe,
+                    "spam" to it.properties.spam
                 )
             )
-            ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
+            if (it.properties.spam) {
+                ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.FORBIDDEN)
+            }else{
+                ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
+            }
         }
 
     @Operation(summary = "Return clicks summary")
