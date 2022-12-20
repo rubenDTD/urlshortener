@@ -56,12 +56,20 @@ $(document).ready(
                         + result.url.replace(hash,"api/link/"+ hash)
                         + "</a></div>"
                   })
-                  /*.then(response => response.blob())
+                  /* Para sacar el nombre del fichero a guardar
+                     No se cómo juntarlo a lo de antes
+                  .then((response) =>
+                    const filename = response.headers
+                      .get("content-disposition")
+                      .split('"')[1];
+                  */
+                  /* Lo que hacía para descargar el csv
+                  .then(response => response.blob())
                   .then(blob => URL.createObjectURL(blob))
                   .then(uril => {
                       var link = document.createElement("a");
                       link.href = uril;
-                      link.download = "shortURLs.csv";
+                      link.download = "shortURLs.csv"; // Aquí iría el filename de antes
                       document.body.appendChild(link);
                       link.click();
                       document.body.removeChild(link);
