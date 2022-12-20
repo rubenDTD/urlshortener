@@ -53,6 +53,7 @@ project(":core") {
     dependencies {
         "implementation"("org.springframework:spring-web:5.3.23")
         "implementation"("com.opencsv:opencsv:5.2")
+        "implementation"("ru.chermenin:kotlin-user-agents:0.2.2")
     }
 }
 

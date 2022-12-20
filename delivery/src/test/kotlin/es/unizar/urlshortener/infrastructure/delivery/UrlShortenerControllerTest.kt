@@ -77,7 +77,8 @@ class UrlShortenerControllerTest {
 
     @Test
     fun `redirectTo logs click stats when the key is spam`() {
-        given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/", 403))
+        given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
+        given(blackListUseCase.isSpam("key")).willReturn(true)
 
         mockMvc.perform(get("/{id}", "key").header("User-Agent","Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
             .andDo(print())
