@@ -35,11 +35,10 @@ class CreateShortUrlCsvUseCaseImpl(private val shortUrlRepository: ShortUrlRepos
         var found = false
 
         file.inputStream.bufferedReader().forEachLine {
-            var short = ""
-            short += it
+            ret.csv += it
             if (validatorService.isValid(it)) {
                 val id: String = hashService.hasUrl(it)
-                short += ",$id"
+                ret.csv += ",$id"
                 val su = ShortUrl(
                         hash = id,
                         redirection = Redirection(target = it),
@@ -53,13 +52,13 @@ class CreateShortUrlCsvUseCaseImpl(private val shortUrlRepository: ShortUrlRepos
                     first = su
                     found = true
                 }
-                short += ",\n"
+                ret.csv += ",\n"
                 shortUrlRepository.save(su)
             }
             else {
-                short += ",,Invalid URL\n"
+                ret.csv += ",,Invalid URL\n"
             }
-            csvService.writeCsvFile(short)
+            //csvService.writeCsvFile(short)
         }
         if(!found)
             first.hash = ""

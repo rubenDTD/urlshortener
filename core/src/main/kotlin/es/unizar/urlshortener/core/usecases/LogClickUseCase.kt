@@ -23,7 +23,10 @@ class LogClickUseCaseImpl(
         val cl = Click(
             hash = key,
             properties = ClickProperties(
-                ip = data.ip
+                ip = data.ip,
+                browser = data.browser,
+                platform = data.platform,
+                referrer = data.referrer
             )
         )
         clickRepository.save(cl)

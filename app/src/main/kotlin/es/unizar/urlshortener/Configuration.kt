@@ -52,4 +52,7 @@ class ApplicationConfiguration(
     @Bean
     fun createShortUrlCsvUseCase() =
         CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService(), csvService())
+
+    @Bean
+    fun blackListUseCase() = BlackListUseCaseImpl(shortUrlRepositoryService())
 }

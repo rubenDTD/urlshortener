@@ -28,6 +28,7 @@ class CreateShortUrlUseCaseImpl(
                 redirection = Redirection(target = url),
                 properties = ShortUrlProperties(
                     safe = data.safe,
+                    spam = data.spam,
                     ip = data.ip,
                     sponsor = data.sponsor
                 )

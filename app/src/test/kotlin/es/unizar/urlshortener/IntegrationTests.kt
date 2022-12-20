@@ -50,7 +50,7 @@ class HttpRequestTest {
     fun `main page works`() {
         val response = restTemplate.getForEntity("http://localhost:$port/", String::class.java)
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
-        assertThat(response.body).contains("A front-end example page for the project")
+        assertThat(response.body).contains("URL Shortener")
     }
 
     @Test

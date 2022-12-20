@@ -46,6 +46,9 @@ class UrlShortenerControllerTest {
     @MockBean
     private lateinit var createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 
+    @MockBean
+    private lateinit var blackListUseCase: BlackListUseCase
+
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
@@ -54,7 +57,7 @@ class UrlShortenerControllerTest {
             .andExpect(status().isTemporaryRedirect)
             .andExpect(redirectedUrl("http://example.com/"))
 
-        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1"))
+        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/"))
     }
 
     @Test
@@ -108,3 +111,5 @@ class UrlShortenerControllerTest {
             .andExpect(jsonPath("$.statusCode").value(400))
     }
 }
+
+
