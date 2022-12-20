@@ -112,6 +112,8 @@ project(":app") {
         "implementation"( "org.webjars:bootstrap:$bootstrapVersion")
         "implementation"("org.webjars:jquery:$jqueryVersion")
 
+        "implementation"("org.springframework.boot:spring-boot-devtools")
+
         "runtimeOnly"("org.hsqldb:hsqldb")
 
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")

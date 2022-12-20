@@ -7,18 +7,17 @@ import es.unizar.urlshortener.core.usecases.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.hateoas.server.mvc.linkTo
-import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
-import ru.chermenin.ua.UserAgent
+import org.springframework.http.*
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import ru.chermenin.ua.UserAgent
 import java.io.File
 import java.net.URI
+import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 
 
 /**
@@ -31,7 +30,7 @@ interface UrlShortenerController {
      *
      * **Note**: Delivery of use cases [RedirectUseCase] and [LogClickUseCase].
      */
-    fun redirectTo(id: String, request: HttpServletRequest, model: Model? = null): Any
+    fun redirectTo(id: String, request: HttpServletRequest, response: HttpServletResponse? = null, model: Model? = null): Any
 
     /**
      * Creates a short url from details provided in [data].
@@ -47,14 +46,6 @@ interface UrlShortenerController {
      * **Note**: Delivery of use case [InfoSummaryUseCase].
      */
     fun summary(id: String): ResponseEntity<SummaryDataOut>
-
-    /**
-     * ... [id].
-     * ... [model]
-     *
-     * **Note**: Delivery of use case [any].
-     */
-    fun banner(@PathVariable id: String, request: HttpServletRequest,model: Model): Any
 
     /**
      * Creates a short url from details provided in [file].
@@ -85,7 +76,6 @@ data class SummaryDataOut(
     val clicks: List<Click>
 )
 
-
 /**
  * The implementation of the controller.
  *
@@ -103,37 +93,31 @@ class UrlShortenerControllerImpl(
     val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 ) : UrlShortenerController {
 
-    @GetMapping("/api/banner/{id}")
-    override fun banner(@PathVariable id: String, request: HttpServletRequest, model: Model): Any {
-        val redirection = redirectUseCase.redirectTo(id)
-        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr))
-        return if(sponsorUseCase.hasSponsor(id)) {
-            model.addAttribute("uri", redirection.target)
-            "banner"
-        } else {
-            val h = HttpHeaders()
-            h.location = URI.create(redirection.target)
-            ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
-        }
-    }
     @Operation(summary = "Redirect to URI")
     @GetMapping("/{id:(?!api|index).*}")
-    override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, model: Model?): Any {
+    override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, response: HttpServletResponse?,
+                            model: Model?): Any {
         val redirection = redirectUseCase.redirectTo(id)
         val uaString = request.getHeader("User-Agent")
         val ua = UserAgent.parse(uaString)
         logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target,
                 ua.browser.toString(), platform = ua.os.toString()))
         val h = HttpHeaders()
-        if (blackListUseCase.checkSpam(id)){
+
+        return if(blackListUseCase.isSpam(id)) {
             ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
-        }
-        return if(sponsorUseCase.hasSponsor(id)) {
-            model?.addAttribute("uri", redirection.target)
-            "banner"
         } else {
-            h.location = URI.create(redirection.target)
-            ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+            if (sponsorUseCase.hasSponsor(id)){
+                model?.addAttribute("uri", redirection.target)
+                val cacheControl = CacheControl.maxAge(120, TimeUnit.SECONDS)
+                        .noTransform()
+                        .mustRevalidate().headerValue
+                response?.addHeader("Cache-Control", cacheControl);
+                "banner"
+            } else {
+                h.location = URI.create(redirection.target)
+                ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+            }
         }
     }
 
@@ -155,23 +139,28 @@ class UrlShortenerControllerImpl(
                 url = url,
                 sponsor = data.sponsor,
                 properties = mapOf(
-                    "safe" to it.properties.safe
+                    "safe" to it.properties.safe,
+                    "spam" to it.properties.spam
                 )
             )
-            ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
+            if (it.properties.spam) {
+                ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.FORBIDDEN)
+            }else{
+                ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
+            }
         }
 
     @Operation(summary = "Return clicks summary")
     @GetMapping("/api/link/{id}")
-    override fun summary(@PathVariable id: String): ResponseEntity<SummaryDataOut> =
-        infoSummaryUseCase.summary(
-            key = id
-        ).let {
-            val response = SummaryDataOut(
-                clicks = it
-            )
+    override fun summary(@PathVariable id: String): ResponseEntity<SummaryDataOut> {
+        val h = HttpHeaders()
+        return if(blackListUseCase.isSpam(id)) {
+            ResponseEntity<SummaryDataOut>(h, HttpStatus.FORBIDDEN)
+        } else {
+            val response = SummaryDataOut(infoSummaryUseCase.summary(id))
             ResponseEntity<SummaryDataOut>(response,HttpStatus.OK)
         }
+    }
 
     @Operation(summary = "Process CSV file")
     @PostMapping("/api/bulk", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])

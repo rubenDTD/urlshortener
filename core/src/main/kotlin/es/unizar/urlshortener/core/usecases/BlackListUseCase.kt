@@ -1,6 +1,9 @@
 package es.unizar.urlshortener.core.usecases
 
 import es.unizar.urlshortener.core.ShortUrlRepositoryService
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.io.ClassPathResource
+import org.springframework.core.io.Resource
 import java.io.File
 import java.nio.file.Paths
 
@@ -12,7 +15,7 @@ import java.nio.file.Paths
  */
 interface BlackListUseCase {
     fun checkBlackList(key: String) : Boolean
-    fun checkSpam(key: String) : Boolean
+    fun isSpam(key: String) : Boolean
 }
 
 /**
@@ -22,12 +25,13 @@ class BlackListUseCaseImpl(
     private val shortUrlRepository: ShortUrlRepositoryService
 ) : BlackListUseCase {
     override fun checkBlackList(key: String) : Boolean {
-        val blackList = readList(Paths.get("core/src/main/resources/blackList.txt").toString())
+        val file = ClassPathResource("blackList.txt").file
+        val blackList = readList(file)
         return blackList.contains(key)
     }
 
-    override fun checkSpam(key: String): Boolean =
+    override fun isSpam(key: String): Boolean =
         shortUrlRepository.findByKey(key)?.properties?.spam ?: false
-    private fun readList(filename: String) : List<String>
-    = File(filename).useLines{ it.toList() }
+    private fun readList(file: File) : List<String>
+    = file.useLines{ it.toList() }
 }
