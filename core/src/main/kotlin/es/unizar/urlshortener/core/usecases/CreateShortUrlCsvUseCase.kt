@@ -41,7 +41,7 @@ class CreateShortUrlCsvUseCaseImpl(
             //rabbitMQService.send(i.toString(), it)
             ret.csv += it
             if (validatorService.isValid(it)) {
-                val id: String = hashService.hasUrl(it)
+                val id = hashService.hasUrl(it)
                 ret.csv += ",$id"
                 val su = ShortUrl(
                         hash = id,

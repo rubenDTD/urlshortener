@@ -52,6 +52,7 @@ subprojects {
 project(":core") {
     dependencies {
         "implementation"("org.springframework:spring-web:5.3.23")
+        "implementation"("ru.chermenin:kotlin-user-agents:0.2.2")
         "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
     }
 }
@@ -111,6 +112,7 @@ project(":app") {
         "implementation"("org.springframework.boot:spring-boot-starter")
         "implementation"( "org.webjars:bootstrap:$bootstrapVersion")
         "implementation"("org.webjars:jquery:$jqueryVersion")
+        "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
 
         "implementation"("org.springframework.boot:spring-boot-devtools")
 
@@ -122,6 +124,5 @@ project(":app") {
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
         "testImplementation"("com.fasterxml.jackson.module:jackson-module-kotlin")
         "testImplementation"("org.apache.httpcomponents:httpclient")
-        "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
     }
 }

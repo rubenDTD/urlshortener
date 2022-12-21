@@ -57,15 +57,14 @@ class ApplicationConfiguration(
     fun infoSummaryUseCase() = InfoSummaryUseCaseImpl(clickRepositoryService())
 
     @Bean
+    fun blackListUseCase() = BlackListUseCaseImpl(shortUrlRepositoryService())
+
+    @Bean
     fun sponsorUseCase() = SponsorUseCaseImpl(shortUrlRepositoryService())
 
     @Bean
     fun createShortUrlCsvUseCase() =
         CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService()/*, rmqService()*/)
-
-    @Bean
-    fun blackListUseCase() = BlackListUseCaseImpl(shortUrlRepositoryService())
-
 
     @Bean
     fun queue(): Queue? {

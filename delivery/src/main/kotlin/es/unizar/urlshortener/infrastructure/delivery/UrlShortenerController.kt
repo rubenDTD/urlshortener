@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import ru.chermenin.ua.UserAgent
 import java.io.File
+import org.springframework.web.servlet.function.ServerResponse.async
 import java.net.URI
 import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest
@@ -165,11 +166,10 @@ class UrlShortenerControllerImpl(
     @Operation(summary = "Process CSV file")
     @PostMapping("/api/bulk", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     override fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<String> {
-        File("salida.csv").delete()
         val h = HttpHeaders()
         if(file.isEmpty)  {
-            h.add("Warning", "Fichero vacío")
-            return ResponseEntity<String>("", h, HttpStatus.OK)
+            h.add("Warning", "Empty file")
+            return ResponseEntity<String>(h, HttpStatus.OK)
         } else {
             try {
                 val s = createShortUrlCsvUseCase.create(
@@ -181,8 +181,8 @@ class UrlShortenerControllerImpl(
                 )
                 val url: URI
                 return if(s.shortUrl.hash.isEmpty()) {
-                    h.add("Warning", "Ninguna URL es válida")
-                    ResponseEntity<String>("", h, HttpStatus.CREATED)
+                    h.add("Warning", "All URL are invalid")
+                    ResponseEntity<String>(h, HttpStatus.CREATED)
                 }else {
                     url = linkTo<UrlShortenerControllerImpl> { redirectTo(s.shortUrl.hash, request) }.toUri()
                     h.location = url
@@ -190,12 +190,11 @@ class UrlShortenerControllerImpl(
                     h.set("Content-Disposition", "attachment; filename=shortURLs.csv")
                     h.set("Content-Length", s.csv.length.toString())
                     ResponseEntity<String>(s.csv, h, HttpStatus.CREATED)
-                    //return ResponseEntity<Any>(response, h, HttpStatus.CREATED)
                 }
             } catch(e: Exception) {
-                h.add("Error", "Problema con la lectura del csv")
+                h.add("Error", "Cannot read csv")
                 h.set("Content-Type", "application/json")
-                return ResponseEntity<String>("", h, HttpStatus.BAD_REQUEST)
+                return ResponseEntity<String>(h, HttpStatus.BAD_REQUEST)
             }
         }
     }

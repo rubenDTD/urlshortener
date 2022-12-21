@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.Resource
 import java.io.File
+import java.io.InputStream
 import java.nio.file.Paths
 
 
@@ -25,13 +26,13 @@ class BlackListUseCaseImpl(
     private val shortUrlRepository: ShortUrlRepositoryService
 ) : BlackListUseCase {
     override fun checkBlackList(key: String) : Boolean {
-        val file = ClassPathResource("blackList.txt").file
+        val file = ClassPathResource("blackList.txt").inputStream
         val blackList = readList(file)
         return blackList.contains(key)
     }
 
     override fun isSpam(key: String): Boolean =
         shortUrlRepository.findByKey(key)?.properties?.spam ?: false
-    private fun readList(file: File) : List<String>
-    = file.useLines{ it.toList() }
+    private fun readList(file: InputStream) : List<String>
+    = file.bufferedReader().readLines()
 }
