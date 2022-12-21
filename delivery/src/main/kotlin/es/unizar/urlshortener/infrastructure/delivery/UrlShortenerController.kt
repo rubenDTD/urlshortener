@@ -75,6 +75,7 @@ data class ShortUrlDataOut(
 )
 
 data class SummaryDataOut(
+    val processing: String,
     val clicks: List<Click>
 )
 
@@ -162,7 +163,12 @@ class UrlShortenerControllerImpl(
         return if(blackListUseCase.isSpam(id)) {
             ResponseEntity<SummaryDataOut>(h, HttpStatus.FORBIDDEN)
         } else {
-            val response = SummaryDataOut(infoSummaryUseCase.summary(id))
+            val processing = if (redirectUseCase.isProcessing(id)){
+                "Web redirection analysis in progress"
+            }else{
+                "Web redirection analyzed and available"
+            }
+            val response = SummaryDataOut(processing, infoSummaryUseCase.summary(id))
             ResponseEntity<SummaryDataOut>(response,HttpStatus.OK)
         }
     }
