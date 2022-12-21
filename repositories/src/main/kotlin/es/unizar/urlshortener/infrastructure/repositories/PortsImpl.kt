@@ -1,9 +1,6 @@
 package es.unizar.urlshortener.infrastructure.repositories
 
-import com.opencsv.CSVReader
-import com.opencsv.CSVWriter
 import es.unizar.urlshortener.core.*
-import org.springframework.web.multipart.MultipartFile
 import java.io.*
 import java.nio.charset.StandardCharsets
 

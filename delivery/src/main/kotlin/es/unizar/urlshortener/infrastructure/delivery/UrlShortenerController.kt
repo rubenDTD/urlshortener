@@ -15,7 +15,6 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
-import ru.chermenin.ua.UserAgent
 import java.net.URI
 import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest

@@ -1,8 +1,5 @@
 package es.unizar.urlshortener.core
 
-import org.springframework.web.multipart.MultipartFile
-import java.io.BufferedReader
-
 /**
  * [ClickRepositoryService] is the port to the repository that provides persistence to [Clicks][Click].
  */

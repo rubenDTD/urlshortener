@@ -1,14 +1,8 @@
 package es.unizar.urlshortener.core.usecases
 
-import es.unizar.urlshortener.core.ShortUrl
 import es.unizar.urlshortener.core.ShortUrlRepositoryService
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ClassPathResource
-import org.springframework.core.io.Resource
-import java.io.File
 import java.io.InputStream
-import java.nio.file.Paths
-
 
 /**
  * Check if IP or URI are in the black list.

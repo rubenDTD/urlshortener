@@ -1,12 +1,11 @@
 package es.unizar.urlshortener.core.usecases
 
-import es.unizar.urlshortener.core.ClickProperties
 import es.unizar.urlshortener.core.ClickRepositoryService
 import ru.chermenin.ua.UserAgent
 
 interface HeadersInfoUseCase {
 
-    suspend fun getBrowserAndPlatform(uaString: String, id: String)
+    suspend fun getBrowserAndPlatform(uaString: String, hash: String)
 }
 
 class HeadersInfoUseCaseImpl(
