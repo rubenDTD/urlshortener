@@ -1,8 +1,5 @@
 package es.unizar.urlshortener.core
 
-import org.springframework.web.multipart.MultipartFile
-import java.io.BufferedReader
-
 /**
  * [ClickRepositoryService] is the port to the repository that provides persistence to [Clicks][Click].
  */
@@ -17,10 +14,6 @@ interface ClickRepositoryService {
 interface ShortUrlRepositoryService {
     fun findByKey(id: String): ShortUrl?
     fun save(su: ShortUrl): ShortUrl
-}
-
-interface CsvService {
-    fun writeCsvFile(url: String)
 }
 
 /**
@@ -39,4 +32,9 @@ interface ValidatorService {
  */
 interface HashService {
     fun hasUrl(url: String): String
+}
+
+interface RMQService{
+    fun listener(message: String)
+    fun send(id: String, uri: String)
 }

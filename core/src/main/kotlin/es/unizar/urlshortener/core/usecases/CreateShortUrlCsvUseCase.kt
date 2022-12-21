@@ -2,6 +2,7 @@ package es.unizar.urlshortener.core.usecases
 
 import es.unizar.urlshortener.core.*
 import org.springframework.web.multipart.MultipartFile
+import org.springframework.amqp.rabbit.core.RabbitTemplate
 
 /**
  * Given the name of a csv file with a URL per line generates another csv file
@@ -17,10 +18,12 @@ interface CreateShortUrlCsvUseCase {
 /**
  * Implementation of [CreateShortUrlCsvUseCase].
  */
-class CreateShortUrlCsvUseCaseImpl(private val shortUrlRepository: ShortUrlRepositoryService,
+class CreateShortUrlCsvUseCaseImpl(
+    private val shortUrlRepository: ShortUrlRepositoryService,
     private val validatorService: ValidatorService,
     private val hashService: HashService,
-    private val csvService: CsvService
+    //private val rabbitMQService: RMQService
+
 ) : CreateShortUrlCsvUseCase {
     override fun create(file: MultipartFile, data: ShortUrlProperties): CsvResponse {
         var first = ShortUrl(
@@ -33,8 +36,9 @@ class CreateShortUrlCsvUseCaseImpl(private val shortUrlRepository: ShortUrlRepos
                 ))
         val ret = CsvResponse(first, "")
         var found = false
-
+        var i = 0
         file.inputStream.bufferedReader().forEachLine {
+            //rabbitMQService.send(i.toString(), it)
             ret.csv += it
             if (validatorService.isValid(it)) {
                 val id: String = hashService.hasUrl(it)
@@ -58,7 +62,7 @@ class CreateShortUrlCsvUseCaseImpl(private val shortUrlRepository: ShortUrlRepos
             else {
                 ret.csv += ",,Invalid URL\n"
             }
-            //csvService.writeCsvFile(short)
+            i++
         }
         if(!found)
             first.hash = ""

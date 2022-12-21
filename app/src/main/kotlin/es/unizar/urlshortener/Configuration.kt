@@ -1,9 +1,19 @@
 package es.unizar.urlshortener
 
+import es.unizar.urlshortener.core.RMQService
+import es.unizar.urlshortener.infrastructure.delivery.Listener
 import es.unizar.urlshortener.core.usecases.*
 import es.unizar.urlshortener.infrastructure.delivery.HashServiceImpl
 import es.unizar.urlshortener.infrastructure.delivery.ValidatorServiceImpl
 import es.unizar.urlshortener.infrastructure.repositories.*
+import org.springframework.amqp.core.Binding
+import org.springframework.amqp.core.BindingBuilder
+import org.springframework.amqp.core.Queue
+import org.springframework.amqp.core.TopicExchange
+import org.springframework.amqp.rabbit.connection.ConnectionFactory
+import org.springframework.amqp.rabbit.core.RabbitTemplate
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer
+import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -25,13 +35,13 @@ class ApplicationConfiguration(
     fun shortUrlRepositoryService() = ShortUrlRepositoryServiceImpl(shortUrlEntityRepository)
 
     @Bean
-    fun csvService() = CsvServiceImpl()
-
-    @Bean
     fun validatorService() = ValidatorServiceImpl()
 
     @Bean
     fun hashService() = HashServiceImpl()
+
+    @Bean
+    fun rmqService() = RMQServiceImpl(RabbitTemplate())
 
     @Bean
     fun redirectUseCase() = RedirectUseCaseImpl(shortUrlRepositoryService())
@@ -41,7 +51,7 @@ class ApplicationConfiguration(
 
     @Bean
     fun createShortUrlUseCase() =
-        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService())
+        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService(), rmqService())
 
     @Bean
     fun infoSummaryUseCase() = InfoSummaryUseCaseImpl(clickRepositoryService())
@@ -51,8 +61,56 @@ class ApplicationConfiguration(
 
     @Bean
     fun createShortUrlCsvUseCase() =
-        CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService(), csvService())
+        CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService()/*, rmqService()*/)
 
     @Bean
     fun blackListUseCase() = BlackListUseCaseImpl(shortUrlRepositoryService())
+
+
+    @Bean
+    fun queue(): Queue? {
+        return Queue("queue", false)
+    }
+    @Bean
+    fun exchange(): TopicExchange {
+        return TopicExchange("exchange")
+    }
+
+    @Bean
+    fun binding(queue: Queue, exchange: TopicExchange): Binding {
+        return BindingBuilder.bind(queue).to(exchange).with("queue")
+    }
+
+    @Bean
+    fun container(connectionFactory: ConnectionFactory, listenerAdapter: MessageListenerAdapter):
+            SimpleMessageListenerContainer {
+        val container = SimpleMessageListenerContainer()
+        container.connectionFactory = connectionFactory
+        container.setQueueNames("queue")
+        container.setMessageListener(listenerAdapter)
+        return container
+    }
+
+    @Bean
+    fun listenerAdapter(receiver: RMQServiceImpl): MessageListenerAdapter {
+        return MessageListenerAdapter(receiver, "listener")
+    }
+
+    /*
+    @Bean
+    fun container(
+            connectionFactory: ConnectionFactory,
+            listenerAdapter: MessageListenerAdapter?
+    ): SimpleMessageListenerContainer? {
+        val container = SimpleMessageListenerContainer()
+        container.connectionFactory = connectionFactory
+        container.setQueueNames("queue")
+        container.setMessageListener(listenerAdapter!!)
+        return container
+    }
+
+    @Bean
+    fun listenerAdapter(listener: Listener?): MessageListenerAdapter? {
+        return MessageListenerAdapter(listener, "listener")
+    }*/
 }

@@ -112,7 +112,7 @@ class UrlShortenerControllerImpl(
                 val cacheControl = CacheControl.maxAge(120, TimeUnit.SECONDS)
                         .noTransform()
                         .mustRevalidate().headerValue
-                response?.addHeader("Cache-Control", cacheControl);
+                response?.addHeader("Cache-Control", cacheControl)
                 "banner"
             } else {
                 h.location = URI.create(redirection.target)

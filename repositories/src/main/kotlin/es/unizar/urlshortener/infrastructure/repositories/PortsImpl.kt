@@ -1,11 +1,9 @@
 package es.unizar.urlshortener.infrastructure.repositories
 
-import com.opencsv.CSVReader
-import com.opencsv.CSVWriter
 import es.unizar.urlshortener.core.*
-import org.springframework.web.multipart.MultipartFile
-import java.io.*
-import java.nio.charset.StandardCharsets
+import org.springframework.amqp.rabbit.core.RabbitTemplate
+import org.springframework.context.annotation.Primary
+import org.springframework.stereotype.Component
 
 /**
  * Implementation of the port [ClickRepositoryService].
@@ -36,13 +34,26 @@ class ShortUrlRepositoryServiceImpl(
     override fun save(su: ShortUrl): ShortUrl = shortUrlEntityRepository.save(su.toEntity()).toDomain()
 }
 
-class CsvServiceImpl : CsvService {
-    override fun writeCsvFile(url: String) {
-        FileOutputStream("salida.csv",true).use { fos ->
-            OutputStreamWriter(fos, StandardCharsets.UTF_8).use { osw ->
-                osw.write(url)
-            }
+@Component
+@Primary
+class RMQServiceImpl(
+        private val rabbitTemplate: RabbitTemplate,
+
+        ) : RMQService {
+
+    override fun listener(message: String) {
+        val (i,url) = message.split("\\")
+        println(url)
+        // Condición para la demo, url not verified
+        if(i.toInt() == 0){
+            println("Primera")
         }
     }
-}
+    override fun send(id: String, uri: String) {
+        // Envía un mensaje a la cola
+        val message = "$id\\$uri"
+        rabbitTemplate.convertAndSend("exchange", "queue", message)
+        println("Mensaje enviado: $message")
+    }
 
+}

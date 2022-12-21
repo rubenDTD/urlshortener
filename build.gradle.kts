@@ -52,7 +52,7 @@ subprojects {
 project(":core") {
     dependencies {
         "implementation"("org.springframework:spring-web:5.3.23")
-        "implementation"("com.opencsv:opencsv:5.2")
+        "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
     }
 }
 
@@ -64,7 +64,7 @@ project(":repositories") {
         "implementation"(project(":core"))
         "implementation"("org.springframework.boot:spring-boot-starter-data-jpa")
         "implementation"("org.springframework:spring-web:5.3.23")
-        "implementation"("com.opencsv:opencsv:5.2")
+        "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
     }
     tasks.getByName<BootJar>("bootJar") {
         enabled = false
@@ -122,5 +122,6 @@ project(":app") {
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")
         "testImplementation"("com.fasterxml.jackson.module:jackson-module-kotlin")
         "testImplementation"("org.apache.httpcomponents:httpclient")
+        "implementation"("org.springframework.amqp:spring-rabbit:2.4.0")
     }
 }

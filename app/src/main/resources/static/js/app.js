@@ -56,7 +56,14 @@ $(document).ready(
                         + result.url.replace(hash,"api/link/"+ hash)
                         + "</a></div>"
                   })
-                  /*.then(response => response.blob())
+                  /* Para sacar el nombre del fichero a guardar
+                  .then(response =>
+                    const filename = response.headers
+                      .get("content-disposition")
+                      .split('"')[1];
+                  */
+                  /* Para descargarlo
+                  .then(response => response.blob())
                   .then(blob => URL.createObjectURL(blob))
                   .then(uril => {
                       var link = document.createElement("a");
