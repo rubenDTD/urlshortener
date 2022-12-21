@@ -6,15 +6,15 @@ import ru.chermenin.ua.UserAgent
 
 interface HeadersInfoUseCase {
 
-    fun getHeaderProperties(uaString: String, id: Long)
+    suspend fun getBrowserAndPlatform(uaString: String, id: String)
 }
 
 class HeadersInfoUseCaseImpl(
     private val clickRepository: ClickRepositoryService
 ) : HeadersInfoUseCase {
-    override fun getHeaderProperties(uaString: String, id: Long) {
+    override suspend fun getBrowserAndPlatform(uaString: String, hash: String) {
         val ua = UserAgent.parse(uaString)
-
+        clickRepository.updateBrowser(hash, ua.browser.toString())
+        clickRepository.updatePlatform(hash, ua.os.toString())
     }
-
 }

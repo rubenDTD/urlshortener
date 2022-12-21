@@ -93,7 +93,8 @@ class UrlShortenerControllerImpl(
     val infoSummaryUseCase: InfoSummaryUseCase,
     val blackListUseCase: BlackListUseCase,
     val sponsorUseCase: SponsorUseCase,
-    val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
+    val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase,
+    val headersInfoUseCase: HeadersInfoUseCase
 ) : UrlShortenerController {
 
     @Operation(summary = "Redirect to URI")
@@ -101,11 +102,11 @@ class UrlShortenerControllerImpl(
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, response: HttpServletResponse?,
                             model: Model?): Any {
         val redirection = redirectUseCase.redirectTo(id)
-        val uaString = request.getHeader("User-Agent")
-        val ua = UserAgent.parse(uaString)
-        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target,
-                ua.browser.toString(), platform = ua.os.toString()))
+        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target))
         val h = HttpHeaders()
+        CoroutineScope(Dispatchers.IO).launch() {
+            headersInfoUseCase.getBrowserAndPlatform(request.getHeader("User-Agent"), id)
+        }
 
         return if (redirectUseCase.isProcessing(id)){
             ResponseEntity<Void>(h, HttpStatus.TOO_EARLY)

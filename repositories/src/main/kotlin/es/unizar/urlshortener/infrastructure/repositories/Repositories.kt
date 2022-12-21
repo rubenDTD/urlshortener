@@ -34,6 +34,11 @@ interface ClickEntityRepository : JpaRepository<ClickEntity, Long> {
 
     @Transactional
     @Modifying
-    @Query(value = "update ClickEntity c set c.platform = ?3, c.browser = ?2 where c.hash = ?1")
-    fun update(hash: String, browser: String, platform: String)
+    @Query(value = "update ClickEntity c set c.browser = ?2 where c.hash = ?1")
+    fun updateBrowser(hash: String, data: String)
+
+    @Transactional
+    @Modifying
+    @Query(value = "update ClickEntity c set c.platform = ?2 where c.hash = ?1")
+    fun updatePlatform(hash: String, data: String)
 }

@@ -23,6 +23,10 @@ class ClickRepositoryServiceImpl(
         }
         return clicksDom
     }
+
+    override fun updateBrowser(hash: String, data: String) = clickEntityRepository.updateBrowser(hash, data)
+
+    override fun updatePlatform(hash: String, data: String) = clickEntityRepository.updatePlatform(hash, data)
 }
 
 /**
