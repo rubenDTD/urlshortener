@@ -37,5 +37,6 @@ class ShortUrlEntity(
     val safe: Boolean,
     val spam: Boolean,
     val ip: String?,
-    val country: String?
+    val country: String?,
+    val processing: Boolean
 )

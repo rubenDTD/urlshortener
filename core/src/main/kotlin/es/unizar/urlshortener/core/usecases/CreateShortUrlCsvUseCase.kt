@@ -27,9 +27,9 @@ class CreateShortUrlCsvUseCaseImpl(private val shortUrlRepository: ShortUrlRepos
                 hash = "error",
                 redirection = Redirection(target = "error"),
                 properties = ShortUrlProperties(
-                        safe = data.safe,
-                        ip = data.ip,
-                        sponsor = data.sponsor
+                    ip = data.ip,
+                    sponsor = data.sponsor,
+                    safe = data.safe,
                 ))
         val ret = CsvResponse(first, "")
         var found = false
@@ -43,9 +43,9 @@ class CreateShortUrlCsvUseCaseImpl(private val shortUrlRepository: ShortUrlRepos
                         hash = id,
                         redirection = Redirection(target = it),
                         properties = ShortUrlProperties(
-                                safe = data.safe,
-                                ip = data.ip,
-                                sponsor = data.sponsor
+                            ip = data.ip,
+                            sponsor = data.sponsor,
+                            safe = data.safe,
                         )
                 )
                 if (!found) {

@@ -6,6 +6,9 @@ import es.unizar.urlshortener.core.ShortUrlProperties
 import es.unizar.urlshortener.core.usecases.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.*
 import org.springframework.stereotype.Controller
@@ -13,8 +16,6 @@ import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import ru.chermenin.ua.UserAgent
-import java.io.File
-import org.springframework.web.servlet.function.ServerResponse.async
 import java.net.URI
 import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest
@@ -105,19 +106,23 @@ class UrlShortenerControllerImpl(
                 ua.browser.toString(), platform = ua.os.toString()))
         val h = HttpHeaders()
 
-        return if(blackListUseCase.isSpam(id)) {
-            ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
-        } else {
-            if (sponsorUseCase.hasSponsor(id)){
-                model?.addAttribute("uri", redirection.target)
-                val cacheControl = CacheControl.maxAge(120, TimeUnit.SECONDS)
+        return if (redirectUseCase.isProcessing(id)){
+            ResponseEntity<Void>(h, HttpStatus.TOO_EARLY)
+        }else {
+            if (blackListUseCase.isSpam(id)) {
+                ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
+            } else {
+                if (sponsorUseCase.hasSponsor(id)) {
+                    model?.addAttribute("uri", redirection.target)
+                    val cacheControl = CacheControl.maxAge(120, TimeUnit.SECONDS)
                         .noTransform()
                         .mustRevalidate().headerValue
-                response?.addHeader("Cache-Control", cacheControl);
-                "banner"
-            } else {
-                h.location = URI.create(redirection.target)
-                ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+                    response?.addHeader("Cache-Control", cacheControl);
+                    "banner"
+                } else {
+                    h.location = URI.create(redirection.target)
+                    ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+                }
             }
         }
     }
@@ -130,9 +135,12 @@ class UrlShortenerControllerImpl(
             data = ShortUrlProperties(
                 ip = request.remoteAddr,
                 sponsor = data.sponsor,
-                spam = blackListUseCase.checkBlackList(request.remoteAddr) || blackListUseCase.checkBlackList(data.url)
+                processing = true
             )
         ).let {
+            CoroutineScope(Dispatchers.IO).launch() {
+                blackListUseCase.checkBlackList(request.remoteAddr, data.url, it.hash)
+            }
             val h = HttpHeaders()
             val url = linkTo<UrlShortenerControllerImpl> { redirectTo(it.hash, request) }.toUri()
             h.location = url
@@ -141,14 +149,10 @@ class UrlShortenerControllerImpl(
                 sponsor = data.sponsor,
                 properties = mapOf(
                     "safe" to it.properties.safe,
-                    "spam" to it.properties.spam
+                    "status" to it.properties.processing
                 )
             )
-            if (it.properties.spam) {
-                ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.FORBIDDEN)
-            }else{
-                ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
-            }
+            ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
         }
 
     @Operation(summary = "Return clicks summary")
@@ -175,8 +179,8 @@ class UrlShortenerControllerImpl(
                 val s = createShortUrlCsvUseCase.create(
                         file = file,
                         data = ShortUrlProperties(
-                                ip = request.remoteAddr,
-                                sponsor = null
+                            ip = request.remoteAddr,
+                            sponsor = null,
                         )
                 )
                 val url: URI

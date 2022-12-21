@@ -17,6 +17,9 @@ interface ClickRepositoryService {
 interface ShortUrlRepositoryService {
     fun findByKey(id: String): ShortUrl?
     fun save(su: ShortUrl): ShortUrl
+    fun updateSpam(hash: String, data: Boolean)
+    fun updateProcessing(hash: String, data: Boolean)
+
 }
 
 interface CsvService {
