@@ -49,6 +49,9 @@ class UrlShortenerControllerTest {
     @MockBean
     private lateinit var createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 
+    @MockBean
+    private lateinit var headersInfoUseCase: HeadersInfoUseCase
+
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
@@ -57,7 +60,7 @@ class UrlShortenerControllerTest {
             .andExpect(status().isTemporaryRedirect)
             .andExpect(redirectedUrl("http://example.com/"))
 
-        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/", browser="Firefox 10.0", platform="Linux"))
+        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/"))
     }
 
     @Test
@@ -82,7 +85,7 @@ class UrlShortenerControllerTest {
             .andDo(print())
             .andExpect(status().isForbidden)
 
-        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/", browser="Firefox 10.0", platform="Linux"))
+        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/"))
     }
 
     @Test
@@ -106,7 +109,7 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    fun `creates returns bad request if it can compute a hash`() {
+    fun `creates returns bad request if it cant compute a hash`() {
         given(
             createShortUrlUseCase.create(
                 url = "ftp://example.com/",
@@ -123,24 +126,4 @@ class UrlShortenerControllerTest {
             .andExpect(jsonPath("$.statusCode").value(400))
     }
 
-    @Test
-    fun `shortener returns forbidden if it is spam`() {
-        given(
-            createShortUrlUseCase.create(
-                url = "http://example.com/",
-                data = ShortUrlProperties(ip = "127.0.0.1")
-            )
-        ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/"), properties = ShortUrlProperties(
-            spam = true
-        )))
-
-        mockMvc.perform(
-            post("/api/link")
-                .param("url", "http://example.com/")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-        )
-            .andDo(print())
-            .andExpect(status().isForbidden)
-            .andExpect(jsonPath("$.properties.spam").value(true))
-    }
 }
