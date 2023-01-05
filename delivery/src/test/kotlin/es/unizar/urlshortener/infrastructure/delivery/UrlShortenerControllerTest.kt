@@ -82,7 +82,8 @@ class UrlShortenerControllerTest {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
         given(blackListUseCase.isSpam("key")).willReturn(true)
 
-        mockMvc.perform(get("/{id}", "key").header("User-Agent","Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
+        mockMvc.perform(get("/{id}", "key").header("User-Agent",
+                               "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
             .andDo(print())
             .andExpect(status().isForbidden)
 
