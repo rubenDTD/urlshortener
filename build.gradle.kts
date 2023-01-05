@@ -8,6 +8,7 @@ plugins {
     kotlin("plugin.spring") version "1.7.10" apply false
     kotlin("plugin.jpa") version "1.7.10" apply false
     id("org.sonarqube") version "3.5.0.2730"
+    jacoco
 }
 
 sonarqube {
@@ -29,21 +30,39 @@ var commonsValidatorVersion = "1.6"
 
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
+    apply(plugin = "jacoco")
+    apply(plugin = "org.sonarqube")
     configure<JavaPluginExtension> {
         sourceCompatibility = JavaVersion.VERSION_11
     }
     repositories {
         mavenCentral()
     }
+
+    jacoco {
+        toolVersion = "0.8.7"
+        reportsDirectory.set(layout.buildDirectory.dir("test_report"))
+    }
+
     tasks.withType<KotlinCompile> {
         kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict")
             jvmTarget = "11"
         }
     }
-    tasks.withType<Test> {
-        useJUnitPlatform()
+
+    tasks.withType<JacocoReport> {
+        reports {
+            xml.required.set(true)
+            csv.required.set(true)
+            html.required.set(false)
+        }
     }
+
+    tasks.withType<Test> {
+        useJUnitPlatform() // Note: automatically generated when creating project
+    }
+
     dependencies {
         "implementation"("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     }
