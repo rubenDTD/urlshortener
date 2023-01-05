@@ -109,9 +109,9 @@ project(":delivery") {
         "implementation"("org.springdoc:springdoc-openapi-ui:1.6.4")
         "implementation"("org.springdoc:springdoc-openapi-kotlin:1.6.0")
 
-        //"implementation"("org.springframework:spring-web:5.3.23")
-
         "implementation"("org.springframework.boot:spring-boot-starter-thymeleaf")
+        "implementation"("org.springframework.boot:spring-boot-starter-cache:2.4.0")
+
 
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
         "testImplementation"("org.mockito.kotlin:mockito-kotlin:$mockitoVersion")

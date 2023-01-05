@@ -78,8 +78,8 @@ class HttpRequestTest {
         val target = shortUrl("http://example.com/","sponsor").headers.location
         require(target != null)
         val response = restTemplate.getForEntity(target, String::class.java)
-
         assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertThat(response.headers.cacheControl).isEqualTo("max-age=120, must-revalidate, no-transform")
         assertThat(response.body).contains("Redirecting in 10 seconds...")
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(1)
     }

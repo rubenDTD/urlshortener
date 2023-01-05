@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.*
 import org.springframework.stereotype.Controller
@@ -97,6 +98,7 @@ class UrlShortenerControllerImpl(
 ) : UrlShortenerController {
 
     @Operation(summary = "Redirect to URI")
+    @Cacheable(value= ["banner"], unless="#result.toString().length != 0 ")
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, response: HttpServletResponse?,
                             model: Model?): Any {
