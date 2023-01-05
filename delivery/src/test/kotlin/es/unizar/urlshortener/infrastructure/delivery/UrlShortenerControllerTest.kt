@@ -89,13 +89,12 @@ class UrlShortenerControllerTest {
         verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/"))
     }
 
-    @Disabled
     @Test
     fun `creates returns a basic redirect if it can compute a hash`() {
         given(
             createShortUrlUseCase.create(
                 url = "http://example.com/",
-                data = ShortUrlProperties(ip = "127.0.0.1")
+                data = ShortUrlProperties(ip = "127.0.0.1", processing = true)
             )
         ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/")))
 
@@ -110,13 +109,13 @@ class UrlShortenerControllerTest {
             .andExpect(jsonPath("$.url").value("http://localhost/f684a3c4"))
     }
 
-    @Disabled
     @Test
     fun `creates returns bad request if it cant compute a hash`() {
         given(
             createShortUrlUseCase.create(
                 url = "ftp://example.com/",
-                data = ShortUrlProperties(ip = "127.0.0.1")
+                data = ShortUrlProperties(ip = "127.0.0.1",
+                        processing = true)
             )
         ).willAnswer { throw InvalidUrlException("ftp://example.com/") }
 
