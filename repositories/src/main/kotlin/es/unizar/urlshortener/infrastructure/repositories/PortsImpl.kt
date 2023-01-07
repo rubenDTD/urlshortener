@@ -39,6 +39,7 @@ class ShortUrlRepositoryServiceImpl(
     override fun updateSpam(hash: String, data: Boolean) = shortUrlEntityRepository.updateSpam(hash, data)
 
     override fun updateProcessing(hash: String, data: Boolean) = shortUrlEntityRepository.updateProcessing(hash, data)
+
 }
 
 class CsvServiceImpl : CsvService {
