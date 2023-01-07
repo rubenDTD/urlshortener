@@ -2,7 +2,7 @@ package es.unizar.urlshortener.infrastructure.delivery
 
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
-import org.junit.jupiter.api.Disabled
+import org.hamcrest.CoreMatchers.containsString
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.never
@@ -57,7 +57,8 @@ class UrlShortenerControllerTest {
     fun `redirectTo returns a redirect when the key exists`() {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
 
-        mockMvc.perform(get("/{id}", "key").header("User-Agent","Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
+        mockMvc.perform(get("/{id}", "key").header("User-Agent",
+                               "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
             .andExpect(status().isTemporaryRedirect)
             .andExpect(redirectedUrl("http://example.com/"))
 
@@ -88,6 +89,29 @@ class UrlShortenerControllerTest {
             .andExpect(status().isForbidden)
 
         verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/"))
+    }
+
+    @Test
+    fun `redirectTo returns ok and banner when the key has sponsor`() {
+        given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
+        given(sponsorUseCase.hasSponsor("key")).willReturn(true)
+
+        mockMvc.perform(get("/{id}", "key").header("User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
+            .andExpect(status().isOk)
+            .andExpect(content().string(containsString("Redirecting in 10 seconds...")))
+
+    }
+
+    @Test
+    fun `redirectTo returns too early when key is processing`() {
+        given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
+        given(redirectUseCase.isProcessing("key")).willReturn(true)
+
+        mockMvc.perform(get("/{id}", "key").header("User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
+            .andExpect(status().isTooEarly)
+
     }
 
     @Test
@@ -127,6 +151,72 @@ class UrlShortenerControllerTest {
         )
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.statusCode").value(400))
+    }
+
+    @Test
+    fun `summary returns ok if key exists`() {
+        val clicks = mutableListOf(Click("f684a3c4", ClickProperties()))
+        given(
+            infoSummaryUseCase.summary(
+                key = "f684a3c4"
+            )
+        ).willReturn(clicks)
+
+        mockMvc.perform(get("/api/link/f684a3c4"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.clicks[0].hash").value(clicks[0].hash))
+            .andExpect(jsonPath("$.clicks.size()").value(1))
+    }
+
+    @Test
+    fun `summary returns not found if key does not exist`() {
+        given(
+            infoSummaryUseCase.summary(
+                key = "f684a3c4"
+            )
+        ).willAnswer { throw RedirectionNotFound("f684a3c4") }
+
+        mockMvc.perform(get("/api/link/f684a3c4"))
+            .andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.statusCode").value(404))
+    }
+
+    @Test
+    fun `summary returns forbidden if key is spam`() {
+        given(
+            blackListUseCase.isSpam(
+                key = "f684a3c4"
+            )
+        ).willReturn(true)
+
+        mockMvc.perform(get("/api/link/f684a3c4"))
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `summary returns in progress if key is still processing`() {
+        given(
+            redirectUseCase.isProcessing(
+                key = "f684a3c4"
+            )
+        ).willReturn(true)
+
+        mockMvc.perform(get("/api/link/f684a3c4"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.processing").value("Web redirection analysis in progress"))
+    }
+
+    @Test
+    fun `summary returns available if key is processed`() {
+        given(
+            redirectUseCase.isProcessing(
+                key = "f684a3c4"
+            )
+        ).willReturn(false)
+
+        mockMvc.perform(get("/api/link/f684a3c4"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.processing").value("Web redirection analyzed and available"))
     }
 
 }
