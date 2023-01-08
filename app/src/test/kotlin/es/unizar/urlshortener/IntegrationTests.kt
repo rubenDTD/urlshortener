@@ -123,6 +123,7 @@ class HttpRequestTest {
             .let {
                 it.subSequence(it.lastIndexOf("/"), it.length)
             }
+        Thread.sleep(1000)
         val response = restTemplate.getForEntity("http://localhost:$port/api/link$target",
             String::class.java)
 
