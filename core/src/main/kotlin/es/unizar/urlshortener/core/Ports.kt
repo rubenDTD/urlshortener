@@ -6,6 +6,8 @@ package es.unizar.urlshortener.core
 interface ClickRepositoryService {
     fun save(cl: Click): Click
     fun summary(key: String): List<Click>
+    fun updateBrowser(hash: String, data: String)
+    fun updatePlatform(hash: String, data: String)
 }
 
 /**
@@ -14,6 +16,9 @@ interface ClickRepositoryService {
 interface ShortUrlRepositoryService {
     fun findByKey(id: String): ShortUrl?
     fun save(su: ShortUrl): ShortUrl
+    fun updateSpam(hash: String, data: Boolean)
+    fun updateProcessing(hash: String, data: Boolean)
+
 }
 
 /**

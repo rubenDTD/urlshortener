@@ -1,6 +1,7 @@
 package es.unizar.urlshortener
 
 import es.unizar.urlshortener.infrastructure.delivery.ShortUrlDataOut
+import es.unizar.urlshortener.infrastructure.delivery.SummaryDataOut
 import org.apache.http.impl.client.HttpClientBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
@@ -73,6 +74,41 @@ class HttpRequestTest {
     }
 
     @Test
+    fun `redirectTo returns ok when the key has sponsor`() {
+        val target = shortUrl("http://example.com/","sponsor").headers.location
+        require(target != null)
+        val response = restTemplate.getForEntity(target, String::class.java)
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertThat(response.headers.cacheControl).isEqualTo("max-age=120, must-revalidate, no-transform")
+        assertThat(response.body).contains("Redirecting in 10 seconds...")
+        assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(1)
+    }
+
+    @Test
+    fun `summary returns ok when the key exists`() {
+        val target = shortUrl("http://example.com/").headers.location
+        require(target != null)
+        restTemplate.getForEntity(target, String::class.java)
+
+        assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(1)
+
+        val response = restTemplate.getForEntity("http://localhost:$port/api/link/f684a3c4",
+                                                     SummaryDataOut::class.java)
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+        assertThat(response.body?.clicks?.size).isEqualTo(1)
+    }
+
+    @Test
+    fun `summary returns a not found when the key does not exist`() {
+        val response = restTemplate.getForEntity("http://localhost:$port/api/link/f684a3c4",
+            String::class.java)
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+        assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(0)
+    }
+
+    @Test
     fun `creates returns a basic redirect if it can compute a hash`() {
         val response = shortUrl("http://example.com/")
 
@@ -103,12 +139,14 @@ class HttpRequestTest {
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(0)
     }
 
-    private fun shortUrl(url: String): ResponseEntity<ShortUrlDataOut> {
+    private fun shortUrl(url: String, sponsor: String? = null): ResponseEntity<ShortUrlDataOut> {
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_FORM_URLENCODED
 
         val data: MultiValueMap<String, String> = LinkedMultiValueMap()
         data["url"] = url
+        if(sponsor != null)
+            data["sponsor"] = sponsor
 
         return restTemplate.postForEntity(
             "http://localhost:$port/api/link",

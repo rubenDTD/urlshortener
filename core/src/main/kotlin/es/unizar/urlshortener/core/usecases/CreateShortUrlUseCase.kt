@@ -27,10 +27,11 @@ class CreateShortUrlUseCaseImpl(
                 hash = id,
                 redirection = Redirection(target = url),
                 properties = ShortUrlProperties(
+                    ip = data.ip,
+                    sponsor = data.sponsor,
                     safe = data.safe,
                     spam = data.spam,
-                    ip = data.ip,
-                    sponsor = data.sponsor
+                    processing = data.processing
                 )
             )
             shortUrlRepository.save(su)

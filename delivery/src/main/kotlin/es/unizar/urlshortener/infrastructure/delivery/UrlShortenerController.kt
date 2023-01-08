@@ -6,6 +6,10 @@ import es.unizar.urlshortener.core.ShortUrlProperties
 import es.unizar.urlshortener.core.usecases.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.hateoas.server.mvc.linkTo
 import org.springframework.http.*
 import org.springframework.stereotype.Controller
@@ -72,6 +76,7 @@ data class ShortUrlDataOut(
 )
 
 data class SummaryDataOut(
+    val processing: String,
     val clicks: List<Click>
 )
 
@@ -89,33 +94,39 @@ class UrlShortenerControllerImpl(
     val infoSummaryUseCase: InfoSummaryUseCase,
     val blackListUseCase: BlackListUseCase,
     val sponsorUseCase: SponsorUseCase,
-    val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
+    val createShortUrlCsvUseCase: CreateShortUrlCsvUseCase,
+    val headersInfoUseCase: HeadersInfoUseCase
 ) : UrlShortenerController {
 
     @Operation(summary = "Redirect to URI")
+    @Cacheable(value= ["banner"], unless="#result.toString().length != 0 ")
     @GetMapping("/{id:(?!api|index).*}")
     override fun redirectTo(@PathVariable id: String, request: HttpServletRequest, response: HttpServletResponse?,
                             model: Model?): Any {
         val redirection = redirectUseCase.redirectTo(id)
-        val uaString = request.getHeader("User-Agent")
-        val ua = UserAgent.parse(uaString)
-        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target,
-                ua.browser.toString(), platform = ua.os.toString()))
+        logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target))
         val h = HttpHeaders()
+        CoroutineScope(Dispatchers.IO).launch() {
+            headersInfoUseCase.getBrowserAndPlatform(request.getHeader("User-Agent"), id)
+        }
 
-        return if(blackListUseCase.isSpam(id)) {
-            ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
-        } else {
-            if (sponsorUseCase.hasSponsor(id)){
-                model?.addAttribute("uri", redirection.target)
-                val cacheControl = CacheControl.maxAge(120, TimeUnit.SECONDS)
+        return if (redirectUseCase.isProcessing(id)){
+            ResponseEntity<Void>(h, HttpStatus.TOO_EARLY)
+        }else {
+            if (blackListUseCase.isSpam(id)) {
+                ResponseEntity<Void>(h, HttpStatus.FORBIDDEN)
+            } else {
+                if (sponsorUseCase.hasSponsor(id)) {
+                    model?.addAttribute("uri", redirection.target)
+                    val cacheControl = CacheControl.maxAge(120, TimeUnit.SECONDS)
                         .noTransform()
                         .mustRevalidate().headerValue
-                response?.addHeader("Cache-Control", cacheControl)
-                "banner"
-            } else {
-                h.location = URI.create(redirection.target)
-                ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+                    response?.addHeader("Cache-Control", cacheControl)
+                    "banner"
+                } else {
+                    h.location = URI.create(redirection.target)
+                    ResponseEntity<Void>(h, HttpStatus.valueOf(redirection.mode))
+                }
             }
         }
     }
@@ -128,9 +139,13 @@ class UrlShortenerControllerImpl(
             data = ShortUrlProperties(
                 ip = request.remoteAddr,
                 sponsor = data.sponsor,
-                spam = blackListUseCase.checkBlackList(request.remoteAddr) || blackListUseCase.checkBlackList(data.url)
+                processing = true
             )
         ).let {
+            val hash = it.hash
+            CoroutineScope(Dispatchers.IO).launch() {
+                blackListUseCase.checkBlackList(request.remoteAddr, data.url, hash)
+            }
             val h = HttpHeaders()
             val url = linkTo<UrlShortenerControllerImpl> { redirectTo(it.hash, request) }.toUri()
             h.location = url
@@ -139,14 +154,10 @@ class UrlShortenerControllerImpl(
                 sponsor = data.sponsor,
                 properties = mapOf(
                     "safe" to it.properties.safe,
-                    "spam" to it.properties.spam
+                    "processing" to it.properties.processing
                 )
             )
-            if (it.properties.spam) {
-                ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.FORBIDDEN)
-            }else{
-                ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
-            }
+            ResponseEntity<ShortUrlDataOut>(response, h, HttpStatus.CREATED)
         }
 
     @Operation(summary = "Return clicks summary")
@@ -156,7 +167,12 @@ class UrlShortenerControllerImpl(
         return if(blackListUseCase.isSpam(id)) {
             ResponseEntity<SummaryDataOut>(h, HttpStatus.FORBIDDEN)
         } else {
-            val response = SummaryDataOut(infoSummaryUseCase.summary(id))
+            val processing = if (redirectUseCase.isProcessing(id)){
+                "Web redirection analysis in progress"
+            }else{
+                "Web redirection analyzed and available"
+            }
+            val response = SummaryDataOut(processing, infoSummaryUseCase.summary(id))
             ResponseEntity<SummaryDataOut>(response,HttpStatus.OK)
         }
     }
@@ -175,8 +191,8 @@ class UrlShortenerControllerImpl(
                 val s = createShortUrlCsvUseCase.create(
                         file = file,
                         data = ShortUrlProperties(
-                                ip = request.remoteAddr,
-                                sponsor = null
+                            ip = request.remoteAddr,
+                            sponsor = null
                         )
                 )
                 if (s.hash.isEmpty()) {

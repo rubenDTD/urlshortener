@@ -1,6 +1,8 @@
 package es.unizar.urlshortener.infrastructure.repositories
 
 import es.unizar.urlshortener.core.*
+import java.io.*
+import java.nio.charset.StandardCharsets
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
@@ -21,6 +23,10 @@ class ClickRepositoryServiceImpl(
         }
         return clicksDom
     }
+
+    override fun updateBrowser(hash: String, data: String) = clickEntityRepository.updateBrowser(hash, data)
+
+    override fun updatePlatform(hash: String, data: String) = clickEntityRepository.updatePlatform(hash, data)
 }
 
 /**
@@ -32,6 +38,11 @@ class ShortUrlRepositoryServiceImpl(
     override fun findByKey(id: String): ShortUrl? = shortUrlEntityRepository.findByHash(id)?.toDomain()
 
     override fun save(su: ShortUrl): ShortUrl = shortUrlEntityRepository.save(su.toEntity()).toDomain()
+
+    override fun updateSpam(hash: String, data: Boolean) = shortUrlEntityRepository.updateSpam(hash, data)
+
+    override fun updateProcessing(hash: String, data: Boolean) = shortUrlEntityRepository.updateProcessing(hash, data)
+
 }
 
 /**

@@ -2,6 +2,7 @@ package es.unizar.urlshortener.infrastructure.delivery
 
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
+import org.hamcrest.CoreMatchers.containsString
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
@@ -53,15 +54,19 @@ class UrlShortenerControllerTest {
     @MockBean
     private lateinit var createShortUrlCsvUseCase: CreateShortUrlCsvUseCase
 
+    @MockBean
+    private lateinit var headersInfoUseCase: HeadersInfoUseCase
+
     @Test
     fun `redirectTo returns a redirect when the key exists`() {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
 
-        mockMvc.perform(get("/{id}", "key").header("User-Agent","Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
+        mockMvc.perform(get("/{id}", "key").header("User-Agent",
+                               "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
             .andExpect(status().isTemporaryRedirect)
             .andExpect(redirectedUrl("http://example.com/"))
 
-        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/", browser="Firefox 10.0", platform="Linux"))
+        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/"))
     }
 
     @Test
@@ -82,11 +87,35 @@ class UrlShortenerControllerTest {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
         given(blackListUseCase.isSpam("key")).willReturn(true)
 
-        mockMvc.perform(get("/{id}", "key").header("User-Agent","Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
+        mockMvc.perform(get("/{id}", "key").header("User-Agent",
+                               "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
             .andDo(print())
             .andExpect(status().isForbidden)
 
-        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/", browser="Firefox 10.0", platform="Linux"))
+        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/"))
+    }
+
+    @Test
+    fun `redirectTo returns ok and banner when the key has sponsor`() {
+        given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
+        given(sponsorUseCase.hasSponsor("key")).willReturn(true)
+
+        mockMvc.perform(get("/{id}", "key").header("User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
+            .andExpect(status().isOk)
+            .andExpect(content().string(containsString("Redirecting in 10 seconds...")))
+
+    }
+
+    @Test
+    fun `redirectTo returns too early when key is processing`() {
+        given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
+        given(redirectUseCase.isProcessing("key")).willReturn(true)
+
+        mockMvc.perform(get("/{id}", "key").header("User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
+            .andExpect(status().isTooEarly)
+
     }
 
     @Test
@@ -94,7 +123,7 @@ class UrlShortenerControllerTest {
         given(
             createShortUrlUseCase.create(
                 url = "http://example.com/",
-                data = ShortUrlProperties(ip = "127.0.0.1")
+                data = ShortUrlProperties(ip = "127.0.0.1", processing = true)
             )
         ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/")))
 
@@ -110,11 +139,12 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    fun `creates returns bad request if it can compute a hash`() {
+    fun `creates returns bad request if it cant compute a hash`() {
         given(
             createShortUrlUseCase.create(
                 url = "ftp://example.com/",
-                data = ShortUrlProperties(ip = "127.0.0.1")
+                data = ShortUrlProperties(ip = "127.0.0.1",
+                        processing = true)
             )
         ).willAnswer { throw InvalidUrlException("ftp://example.com/") }
 
@@ -128,22 +158,69 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    fun `shortener returns forbidden if it is spam`() {
+    fun `summary returns ok if key exists`() {
+        val clicks = mutableListOf(Click("f684a3c4", ClickProperties()))
         given(
-            createShortUrlUseCase.create(
-                url = "http://example.com/",
-                data = ShortUrlProperties(ip = "127.0.0.1")
+            infoSummaryUseCase.summary(
+                key = "f684a3c4"
             )
-        ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/"), properties = ShortUrlProperties(spam = true)))
+        ).willReturn(clicks)
 
-        mockMvc.perform(
-            post("/api/link")
-                .param("url", "http://example.com/")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-        )
-            .andDo(print())
+        mockMvc.perform(get("/api/link/f684a3c4"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.clicks[0].hash").value(clicks[0].hash))
+            .andExpect(jsonPath("$.clicks.size()").value(1))
+    }
+
+    @Test
+    fun `summary returns not found if key does not exist`() {
+        given(
+            infoSummaryUseCase.summary(
+                key = "f684a3c4"
+            )
+        ).willAnswer { throw RedirectionNotFound("f684a3c4") }
+
+        mockMvc.perform(get("/api/link/f684a3c4"))
+            .andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.statusCode").value(404))
+    }
+
+    @Test
+    fun `summary returns forbidden if key is spam`() {
+        given(
+            blackListUseCase.isSpam(
+                key = "f684a3c4"
+            )
+        ).willReturn(true)
+
+        mockMvc.perform(get("/api/link/f684a3c4"))
             .andExpect(status().isForbidden)
-            .andExpect(jsonPath("$.properties.spam").value(true))
+    }
+
+    @Test
+    fun `summary returns in progress if key is still processing`() {
+        given(
+            redirectUseCase.isProcessing(
+                key = "f684a3c4"
+            )
+        ).willReturn(true)
+
+        mockMvc.perform(get("/api/link/f684a3c4"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.processing").value("Web redirection analysis in progress"))
+    }
+
+    @Test
+    fun `summary returns available if key is processed`() {
+        given(
+            redirectUseCase.isProcessing(
+                key = "f684a3c4"
+            )
+        ).willReturn(false)
+
+        mockMvc.perform(get("/api/link/f684a3c4"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.processing").value("Web redirection analyzed and available"))
     }
 
     @Test

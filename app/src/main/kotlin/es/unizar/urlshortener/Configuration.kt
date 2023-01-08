@@ -61,6 +61,9 @@ class ApplicationConfiguration(
     fun sponsorUseCase() = SponsorUseCaseImpl(shortUrlRepositoryService())
 
     @Bean
+    fun headersInfoUseCase() = HeadersInfoUseCaseImpl(clickRepositoryService())
+
+    @Bean
     fun createShortUrlCsvUseCase() =
         CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), hashService(), rmqService())
 
