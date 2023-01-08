@@ -23,11 +23,9 @@ class CreateShortUrlCsvUseCaseImpl(
     private val validatorService: ValidatorService,
     private val rabbitMQService: RMQService
 ) : CreateShortUrlCsvUseCase {
-    //@Throws(BadRequestException::class)
     override fun create(file: MultipartFile, data: ShortUrlProperties): CsvResponse {
         val ret = CsvResponse("", "")
         file.inputStream.bufferedReader().forEachLine {
-            //if(it == "throw") throw BadRequestException("Forced error for test")
             if (validatorService.isValid(it))
                 rabbitMQService.send(it, hashService.hasUrl(it), data.safe, data.ip, data.sponsor)
         }

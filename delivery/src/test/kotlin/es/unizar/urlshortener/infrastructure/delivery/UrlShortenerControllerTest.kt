@@ -3,7 +3,6 @@ package es.unizar.urlshortener.infrastructure.delivery
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
 import org.hamcrest.CoreMatchers.containsString
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.never
@@ -257,17 +256,35 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    @Disabled
     fun `creates correct return for bad request`() {
         val mockMultipartFile = MockMultipartFile(
                 "file",
                 "throw".toByteArray())
         given(createShortUrlCsvUseCase.create(file = mockMultipartFile, data = ShortUrlProperties(ip = "127.0.0.1")))
-                .willReturn(CsvResponse("ERROR", ""))
+            .willAnswer { throw BadRequestException("Error - Cannot process uploaded file") }
 
         mockMvc.perform(multipart("/api/bulk")
                 .file(mockMultipartFile))
                 .andDo(print())
                 .andExpect(status().isBadRequest)
+                .andExpect(header().string(CONTENT_TYPE, "application/json"))
+                .andExpect(jsonPath("$").value("Error - Cannot process uploaded file"))
+    }
+
+    @Test
+    fun `creates correct return for empty hash`() {
+        val mockMultipartFile = MockMultipartFile(
+            "file",
+            "htp://www.unizar.es/\nhtp://www.example.com/".toByteArray())
+        given(createShortUrlCsvUseCase.create(file = mockMultipartFile, data = ShortUrlProperties(ip = "127.0.0.1")))
+            .willReturn(CsvResponse("", "csv"))
+
+        mockMvc.perform(multipart("/api/bulk")
+            .file(mockMultipartFile))
+            .andDo(print())
+            .andExpect(status().isCreated)
+            .andExpect(header().string(CONTENT_TYPE, "text/csv"))
+            .andExpect(header().string("Warning","All URLs are invalid"))
+            .andExpect(header().string(LOCATION, "http://localhost/ALL_INVALID"))
     }
 }
