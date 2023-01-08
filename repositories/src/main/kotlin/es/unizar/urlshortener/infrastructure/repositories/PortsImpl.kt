@@ -34,26 +34,39 @@ class ShortUrlRepositoryServiceImpl(
     override fun save(su: ShortUrl): ShortUrl = shortUrlEntityRepository.save(su.toEntity()).toDomain()
 }
 
+/**
+ * Implementation of the port [RMQService].
+ */
 @Component
 @Primary
 class RMQServiceImpl(
         private val rabbitTemplate: RabbitTemplate,
-
+        private var shortUrlRepository: ShortUrlRepositoryService,
+        private val validatorService: ValidatorService,
+        private val hashService: HashService
         ) : RMQService {
 
     override fun listener(message: String) {
-        val (i,url) = message.split("\\")
-        println(url)
-        // Condición para la demo, url not verified
-        if(i.toInt() == 0){
-            println("Primera")
+        val (uri,safe,ip,sponsor) = message.split("\\")
+        val isSafe = safe == "si"
+        if (validatorService.isValid(uri)) {
+            val hash = hashService.hasUrl(uri)
+            shortUrlRepository.save(ShortUrl(
+                    hash = hash,
+                    redirection = Redirection(target = uri),
+                    properties = ShortUrlProperties(
+                            safe = isSafe,
+                            ip = ip,
+                            sponsor = sponsor
+                    )
+            ))
         }
     }
-    override fun send(id: String, uri: String) {
-        // Envía un mensaje a la cola
-        val message = "$id\\$uri"
-        rabbitTemplate.convertAndSend("exchange", "queue", message)
-        println("Mensaje enviado: $message")
-    }
 
+    override fun send(uri: String, safe: Boolean, ip: String?, sponsor: String?) {
+        // Post a message on the queue
+        val s = if(safe) "si" else "no"
+        val message = "$uri\\$s\\$ip\\$sponsor"
+        rabbitTemplate.convertAndSend("exchange", "queue", message)
+    }
 }

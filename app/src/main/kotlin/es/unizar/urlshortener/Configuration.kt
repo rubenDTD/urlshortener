@@ -1,7 +1,5 @@
 package es.unizar.urlshortener
 
-import es.unizar.urlshortener.core.RMQService
-import es.unizar.urlshortener.infrastructure.delivery.Listener
 import es.unizar.urlshortener.core.usecases.*
 import es.unizar.urlshortener.infrastructure.delivery.HashServiceImpl
 import es.unizar.urlshortener.infrastructure.delivery.ValidatorServiceImpl
@@ -26,14 +24,14 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class ApplicationConfiguration(
     @Autowired val shortUrlEntityRepository: ShortUrlEntityRepository,
-    @Autowired val clickEntityRepository: ClickEntityRepository
+    @Autowired val clickEntityRepository: ClickEntityRepository,
+    @Autowired val rabbitTemplate: RabbitTemplate
 ) {
     @Bean
     fun clickRepositoryService() = ClickRepositoryServiceImpl(clickEntityRepository)
 
     @Bean
     fun shortUrlRepositoryService() = ShortUrlRepositoryServiceImpl(shortUrlEntityRepository)
-
     @Bean
     fun validatorService() = ValidatorServiceImpl()
 
@@ -41,7 +39,7 @@ class ApplicationConfiguration(
     fun hashService() = HashServiceImpl()
 
     @Bean
-    fun rmqService() = RMQServiceImpl(RabbitTemplate())
+    fun rmqService() = RMQServiceImpl(rabbitTemplate, shortUrlRepositoryService(), validatorService(), hashService())
 
     @Bean
     fun redirectUseCase() = RedirectUseCaseImpl(shortUrlRepositoryService())
@@ -51,7 +49,7 @@ class ApplicationConfiguration(
 
     @Bean
     fun createShortUrlUseCase() =
-        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService(), rmqService())
+        CreateShortUrlUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService())
 
     @Bean
     fun infoSummaryUseCase() = InfoSummaryUseCaseImpl(clickRepositoryService())
@@ -64,7 +62,7 @@ class ApplicationConfiguration(
 
     @Bean
     fun createShortUrlCsvUseCase() =
-        CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), validatorService(), hashService()/*, rmqService()*/)
+        CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), hashService(), rmqService())
 
     @Bean
     fun queue(): Queue? {
@@ -91,25 +89,7 @@ class ApplicationConfiguration(
     }
 
     @Bean
-    fun listenerAdapter(receiver: RMQServiceImpl): MessageListenerAdapter {
+    fun listenerAdapter(receiver: RMQServiceImpl?): MessageListenerAdapter {
         return MessageListenerAdapter(receiver, "listener")
     }
-
-    /*
-    @Bean
-    fun container(
-            connectionFactory: ConnectionFactory,
-            listenerAdapter: MessageListenerAdapter?
-    ): SimpleMessageListenerContainer? {
-        val container = SimpleMessageListenerContainer()
-        container.connectionFactory = connectionFactory
-        container.setQueueNames("queue")
-        container.setMessageListener(listenerAdapter!!)
-        return container
-    }
-
-    @Bean
-    fun listenerAdapter(listener: Listener?): MessageListenerAdapter? {
-        return MessageListenerAdapter(listener, "listener")
-    }*/
 }

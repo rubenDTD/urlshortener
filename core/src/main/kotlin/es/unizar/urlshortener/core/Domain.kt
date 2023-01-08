@@ -23,7 +23,7 @@ data class ShortUrl(
 )
 
 data class CsvResponse(
-        var shortUrl: ShortUrl,
+        var hash: String,
         var csv: String
 )
 

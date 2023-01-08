@@ -6,5 +6,3 @@ class RedirectionNotFound(val key: String) : Exception("[$key] is not known")
 
 //@ResponseStatus(HttpStatus.BAD_REQUEST)
 class BadRequestException(msg: String) : Exception(msg)
-//@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-class CsvImportException(msg: String) : Exception(msg)

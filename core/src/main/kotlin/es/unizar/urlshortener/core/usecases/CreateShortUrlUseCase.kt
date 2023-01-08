@@ -18,12 +18,10 @@ interface CreateShortUrlUseCase {
 class CreateShortUrlUseCaseImpl(
     private val shortUrlRepository: ShortUrlRepositoryService,
     private val validatorService: ValidatorService,
-    private val hashService: HashService,
-    private val rabbitMQService: RMQService
+    private val hashService: HashService
 ) : CreateShortUrlUseCase {
     override fun create(url: String, data: ShortUrlProperties): ShortUrl =
         if (validatorService.isValid(url)) {
-            rabbitMQService.send("0", url)
             val id: String = hashService.hasUrl(url)
             val su = ShortUrl(
                 hash = id,

@@ -34,7 +34,10 @@ interface HashService {
     fun hasUrl(url: String): String
 }
 
+/**
+ * [RMQService] is the port to the service that sends and receives messages through a RabbitMQ queue.
+ */
 interface RMQService{
     fun listener(message: String)
-    fun send(id: String, uri: String)
+    fun send(uri: String, safe: Boolean, ip: String?, sponsor: String?)
 }

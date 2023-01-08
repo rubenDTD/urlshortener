@@ -10,12 +10,14 @@ import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.http.HttpHeaders.CONTENT_TYPE
+import org.springframework.http.HttpHeaders.LOCATION
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 
@@ -142,5 +144,54 @@ class UrlShortenerControllerTest {
             .andDo(print())
             .andExpect(status().isForbidden)
             .andExpect(jsonPath("$.properties.spam").value(true))
+    }
+
+    @Test
+    fun `creates correct return for not empty csv`() {
+        val mockMultipartFile = MockMultipartFile(
+                "file",
+                "htp://www.unizar.es/\nhttp://www.example.com/".toByteArray())
+        given(createShortUrlCsvUseCase.create(file = mockMultipartFile, data = ShortUrlProperties(ip = "127.0.0.1")))
+                .willReturn(CsvResponse(
+                "64faa857",
+                "htp://www.unizar.es/,,debe ser una URI http o https\n" +
+                    "http://www.example.com/,http://localhost:8080/64faa857,")
+                )
+
+        mockMvc.perform(multipart("/api/bulk")
+                .file(mockMultipartFile))
+                .andDo(print())
+                .andExpect(status().isCreated)
+                .andExpect(header().string(CONTENT_TYPE, "text/csv"))
+                .andExpect(header().string(LOCATION, "http://localhost/64faa857"))
+    }
+
+    @Test
+    fun `creates correct return for empty csv`() {
+        val mockMultipartFile = MockMultipartFile(
+                "file",
+                "".toByteArray())
+        given(createShortUrlCsvUseCase.create(file = mockMultipartFile, data = ShortUrlProperties(ip = "127.0.0.1")))
+                .willReturn(CsvResponse("ERROR", ""))
+
+        mockMvc.perform(multipart("/api/bulk")
+                .file(mockMultipartFile))
+                .andDo(print())
+                .andExpect(status().isOk)
+    }
+
+    @Test
+    @Disabled
+    fun `creates correct return for bad request`() {
+        val mockMultipartFile = MockMultipartFile(
+                "file",
+                "throw".toByteArray())
+        given(createShortUrlCsvUseCase.create(file = mockMultipartFile, data = ShortUrlProperties(ip = "127.0.0.1")))
+                .willReturn(CsvResponse("ERROR", ""))
+
+        mockMvc.perform(multipart("/api/bulk")
+                .file(mockMultipartFile))
+                .andDo(print())
+                .andExpect(status().isBadRequest)
     }
 }

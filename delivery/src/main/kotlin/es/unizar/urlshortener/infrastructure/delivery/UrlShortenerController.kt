@@ -13,8 +13,6 @@ import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import ru.chermenin.ua.UserAgent
-import java.io.File
-import org.springframework.web.servlet.function.ServerResponse.async
 import java.net.URI
 import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest
@@ -166,12 +164,14 @@ class UrlShortenerControllerImpl(
     @Operation(summary = "Process CSV file")
     @PostMapping("/api/bulk", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     override fun csv(@RequestParam("file") file: MultipartFile, request: HttpServletRequest): ResponseEntity<String> {
-        val h = HttpHeaders()
-        if(file.isEmpty)  {
-            h.add("Warning", "Empty file")
-            return ResponseEntity<String>(h, HttpStatus.OK)
-        } else {
-            try {
+        try {
+            val h = HttpHeaders()
+            if (file.isEmpty) {
+                println("Empty")
+                h.location = linkTo<UrlShortenerControllerImpl> { redirectTo("ERROR", request) }.toUri()
+                h.add("Warning", "Empty file")
+                return ResponseEntity<String>(h, HttpStatus.OK)
+            } else {
                 val s = createShortUrlCsvUseCase.create(
                         file = file,
                         data = ShortUrlProperties(
@@ -179,23 +179,27 @@ class UrlShortenerControllerImpl(
                                 sponsor = null
                         )
                 )
-                val url: URI
-                return if(s.shortUrl.hash.isEmpty()) {
-                    h.add("Warning", "All URL are invalid")
-                    ResponseEntity<String>(h, HttpStatus.CREATED)
-                }else {
-                    url = linkTo<UrlShortenerControllerImpl> { redirectTo(s.shortUrl.hash, request) }.toUri()
-                    h.location = url
-                    h.set("Content-Type", "text/csv")
-                    h.set("Content-Disposition", "attachment; filename=shortURLs.csv")
-                    h.set("Content-Length", s.csv.length.toString())
-                    ResponseEntity<String>(s.csv, h, HttpStatus.CREATED)
+                if (s.hash.isEmpty()) {
+                    println("All invalid")
+                    h.add("Warning", "All URLs are invalid")
+                    s.hash = "ERROR"
                 }
-            } catch(e: Exception) {
-                h.add("Error", "Cannot read csv")
-                h.set("Content-Type", "application/json")
-                return ResponseEntity<String>(h, HttpStatus.BAD_REQUEST)
+                val url = linkTo<UrlShortenerControllerImpl> { redirectTo(s.hash, request) }.toUri()
+                println(url)
+                h.location = url
+                println(h.location)
+                h.set("Content-Type", "text/csv")
+                h.set("Content-Disposition", "attachment; filename=shortURLs.csv")
+                h.set("Content-Length", s.csv.length.toString())
+                return ResponseEntity<String>(s.csv, h, HttpStatus.CREATED)
             }
+        } catch (e: Exception) {
+            val h = HttpHeaders()
+            println("Fail")
+            h.location = linkTo<UrlShortenerControllerImpl> { redirectTo("ERROR", request) }.toUri()
+            h.add("Error", "Cannot read csv")
+            h.set("Content-Type", "application/json")
+            return ResponseEntity<String>(h, HttpStatus.BAD_REQUEST)
         }
     }
 }
