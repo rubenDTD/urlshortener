@@ -28,9 +28,9 @@ class CreateShortUrlCsvUseCaseImpl(
         val ret = CsvResponse("", "")
         file.inputStream.bufferedReader().forEachLine {
             //if(it == "throw") throw BadRequestException("Forced error for test")
-            if (validatorService.isValid(it)) rabbitMQService.send(it, hashService.hasUrl(it), data.safe, data.ip, data.sponsor)
+            if (validatorService.isValid(it))
+                rabbitMQService.send(it, hashService.hasUrl(it), data.safe, data.ip, data.sponsor)
         }
-        Thread.sleep(500)
         var found = false
         file.inputStream.bufferedReader().forEachLine {
             val hash = hashService.hasUrl(it)
