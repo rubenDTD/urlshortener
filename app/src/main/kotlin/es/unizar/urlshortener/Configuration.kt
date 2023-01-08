@@ -39,7 +39,7 @@ class ApplicationConfiguration(
     fun hashService() = HashServiceImpl()
 
     @Bean
-    fun rmqService() = RMQServiceImpl(rabbitTemplate, shortUrlRepositoryService(), hashService(), validatorService())
+    fun rmqService() = RMQServiceImpl(rabbitTemplate, shortUrlRepositoryService())
 
     @Bean
     fun redirectUseCase() = RedirectUseCaseImpl(shortUrlRepositoryService())

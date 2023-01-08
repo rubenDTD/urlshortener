@@ -6,6 +6,7 @@ import org.apache.http.impl.client.HttpClientBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -15,6 +16,7 @@ import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.*
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.jdbc.JdbcTestUtils
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
@@ -159,6 +161,50 @@ class HttpRequestTest {
         assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "shorturl")).isEqualTo(0)
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(0)
+    }
+
+    @Test
+    @Disabled
+    fun `creates correct return for not empty csv`() {
+        val headers = HttpHeaders()
+        headers.contentType = MediaType.parseMediaType("multipart/form-data; boundary=IW")
+        val response = restTemplate.postForEntity(
+                "http://localhost:$port/api/bulk",
+                HttpEntity("htp://www.unizar.es/\nhttp://www.example.com/".toByteArray(), headers), String::class.java
+        )
+        assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
+        assertThat(response.headers.contentType.toString()).isEqualTo("text/csv")
+        assertThat(response.headers.location.toString()).isEqualTo("http://localhost:8080/64faa857")
+    }
+
+    @Test
+    @Disabled
+    fun `creates correct return for empty csv`() {
+        val headers = HttpHeaders()
+        headers.contentType = MediaType.parseMediaType("multipart/form-data; boundary=IW")
+        val response = restTemplate.postForEntity(
+                "http://localhost:$port/api/bulk",
+                HttpEntity("".toByteArray(), headers), String::class.java
+        )
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
+    }
+
+    @Test
+    @Disabled
+    fun `creates correct return for bad request`() {
+        val headers = HttpHeaders()
+        val moc = MockMultipartFile(
+                "file",
+                "htp://www.unizar.es/\\nhttp://www.example.com/".toByteArray())
+        val body = LinkedMultiValueMap<String, Any>()
+        body.add("file", moc.bytes)
+        val response = restTemplate.postForEntity(
+                "http://localhost:$port/api/bulk",
+                HttpEntity(body,headers), String::class.java
+        )
+        assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
+        assertThat(response.headers.contentType.toString()).isEqualTo("application/json")
+        assertThat(response.body.toString()).isEqualTo("http://localhost:8080/64faa857")
     }
 
     private fun shortUrl(url: String, sponsor: String? = null): ResponseEntity<ShortUrlDataOut> {

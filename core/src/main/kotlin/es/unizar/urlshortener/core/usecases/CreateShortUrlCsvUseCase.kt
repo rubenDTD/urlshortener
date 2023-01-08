@@ -26,8 +26,7 @@ class CreateShortUrlCsvUseCaseImpl(
     override fun create(file: MultipartFile, data: ShortUrlProperties): CsvResponse {
         val ret = CsvResponse("", "")
         file.inputStream.bufferedReader().forEachLine {
-            if (validatorService.isValid(it))
-                rabbitMQService.send(it, hashService.hasUrl(it), data.safe, data.ip, data.sponsor)
+            if (validatorService.isValid(it)) rabbitMQService.send(it, hashService.hasUrl(it), data.safe, data.ip, data.sponsor)
         }
         var found = false
         file.inputStream.bufferedReader().forEachLine {
