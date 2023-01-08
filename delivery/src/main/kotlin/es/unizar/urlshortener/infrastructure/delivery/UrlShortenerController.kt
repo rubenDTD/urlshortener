@@ -143,7 +143,7 @@ class UrlShortenerControllerImpl(
         ).let {
             val hash = it.hash
             CoroutineScope(Dispatchers.IO).launch {
-                blackListUseCase.checkBlackList(request.remoteAddr, data.url, hash)
+                blackListUseCase.checkBlackList(request.remoteAddr?:"", data.url, hash)
             }
             val h = HttpHeaders()
             val url = linkTo<UrlShortenerControllerImpl> { redirectTo(it.hash, request) }.toUri()
