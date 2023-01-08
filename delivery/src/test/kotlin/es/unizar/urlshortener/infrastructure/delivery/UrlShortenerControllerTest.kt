@@ -2,7 +2,6 @@ package es.unizar.urlshortener.infrastructure.delivery
 
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.containsString
 import org.junit.jupiter.api.Test

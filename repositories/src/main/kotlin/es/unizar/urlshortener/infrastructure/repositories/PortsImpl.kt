@@ -50,9 +50,7 @@ class ShortUrlRepositoryServiceImpl(
 @Primary
 class RMQServiceImpl(
         private val rabbitTemplate: RabbitTemplate,
-        private var shortUrlRepository: ShortUrlRepositoryService,
-        private val hashService: HashService,
-        private val validatorService: ValidatorService
+        private var shortUrlRepository: ShortUrlRepositoryService
         ) : RMQService {
 
     override fun listener(message: String) {

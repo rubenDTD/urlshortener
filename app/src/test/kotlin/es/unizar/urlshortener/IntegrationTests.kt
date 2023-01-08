@@ -20,7 +20,6 @@ import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.jdbc.JdbcTestUtils
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.util.MultiValueMap
-import org.springframework.web.multipart.MultipartFile
 import java.net.URI
 
 
@@ -175,7 +174,7 @@ class HttpRequestTest {
         )
         assertThat(response.statusCode).isEqualTo(HttpStatus.CREATED)
         assertThat(response.headers.contentType.toString()).isEqualTo("text/csv")
-        assertThat(response.headers.location).isEqualTo("http://localhost:8080/64faa857")
+        assertThat(response.headers.location.toString()).isEqualTo("http://localhost:8080/64faa857")
     }
 
     @Test
