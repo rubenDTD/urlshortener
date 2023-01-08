@@ -58,7 +58,6 @@ class RMQServiceImpl(
     override fun listener(message: String) {
         val (uri,hash,safe,ip,sponsor) = message.split("::")
         val isSafe = safe == "si"
-        //val hash = hashService.hasUrl(uri)
         shortUrlRepository.save(ShortUrl(
                 hash = hash,
                 redirection = Redirection(target = uri),

@@ -88,6 +88,15 @@ class HttpRequestTest {
     }
 
     @Test
+    fun `redirectTo returns forbidden when the key is spam`(){
+        val target = shortUrl("http://www.example.com").headers.location
+        require(target != null)
+        val response = restTemplate.getForEntity(target, String::class.java)
+        assertThat(response.statusCode).isEqualTo(HttpStatus.FORBIDDEN)
+        assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(1)
+    }
+
+    @Test
     fun `summary returns ok when the key exists`() {
         val target = shortUrl("http://example.com/").headers.location
         require(target != null)
@@ -108,6 +117,20 @@ class HttpRequestTest {
             String::class.java)
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+        assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(0)
+    }
+
+    @Test
+    fun `summary returns forbidden when it is spam`() {
+        val target = shortUrl("http://www.example.com").headers.location.toString()
+            .let {
+                it.subSequence(it.lastIndexOf("/"), it.length)
+            }
+        Thread.sleep(1000)
+        val response = restTemplate.getForEntity("http://localhost:$port/api/link$target",
+            String::class.java)
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.FORBIDDEN)
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(0)
     }
 
@@ -137,7 +160,6 @@ class HttpRequestTest {
         )
 
         assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
-
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "shorturl")).isEqualTo(0)
         assertThat(JdbcTestUtils.countRowsInTable(jdbcTemplate, "click")).isEqualTo(0)
     }

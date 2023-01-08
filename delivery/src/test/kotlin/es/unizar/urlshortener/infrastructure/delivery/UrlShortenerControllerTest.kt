@@ -2,8 +2,9 @@ package es.unizar.urlshortener.infrastructure.delivery
 
 import es.unizar.urlshortener.core.*
 import es.unizar.urlshortener.core.usecases.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.containsString
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.BDDMockito.never
@@ -95,6 +96,22 @@ class UrlShortenerControllerTest {
     }
 
     @Test
+    fun `redirectTo logs click stats with headers async`() {
+        given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
+        given(blackListUseCase.isSpam("key")).willReturn(true)
+
+        mockMvc.perform(get("/{id}", "key").header("User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0"))
+            .andDo(print())
+            .andExpect(status().isForbidden)
+
+        verify(logClickUseCase).logClick("key", ClickProperties(ip = "127.0.0.1", referrer = "http://example.com/"))
+        runBlocking{
+            verify(headersInfoUseCase).getBrowserAndPlatform("Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0", "key")
+        }
+    }
+
+    @Test
     fun `redirectTo returns ok and banner when the key has sponsor`() {
         given(redirectUseCase.redirectTo("key")).willReturn(Redirection("http://example.com/"))
         given(sponsorUseCase.hasSponsor("key")).willReturn(true)
@@ -154,6 +171,30 @@ class UrlShortenerControllerTest {
         )
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.statusCode").value(400))
+    }
+
+    @Test
+    fun `creates returns a basic redirect and checks spam async`() {
+        given(
+            createShortUrlUseCase.create(
+                url = "http://example.com/",
+                data = ShortUrlProperties(ip = "127.0.0.1", processing = true)
+            )
+        ).willReturn(ShortUrl("f684a3c4", Redirection("http://example.com/")))
+
+        mockMvc.perform(
+            post("/api/link")
+                .param("url", "http://example.com/")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+        )
+            .andDo(print())
+            .andExpect(status().isCreated)
+            .andExpect(redirectedUrl("http://localhost/f684a3c4"))
+            .andExpect(jsonPath("$.url").value("http://localhost/f684a3c4"))
+
+        runBlocking {
+            verify(blackListUseCase).checkBlackList("127.0.0.1", "http://example.com/", "f684a3c4")
+        }
     }
 
     @Test
@@ -262,7 +303,7 @@ class UrlShortenerControllerTest {
                 "file",
                 "throw".toByteArray())
         given(createShortUrlCsvUseCase.create(file = mockMultipartFile, data = ShortUrlProperties(ip = "127.0.0.1")))
-                .willAnswer { throw BadRequestException("Error - Cannot process uploaded file") }
+            .willAnswer { throw BadRequestException("Error - Cannot process uploaded file") }
 
         mockMvc.perform(multipart("/api/bulk")
                 .file(mockMultipartFile))
@@ -270,5 +311,22 @@ class UrlShortenerControllerTest {
                 .andExpect(status().isBadRequest)
                 .andExpect(header().string(CONTENT_TYPE, "application/json"))
                 .andExpect(jsonPath("$").value("Error - Cannot process uploaded file"))
+    }
+
+    @Test
+    fun `creates correct return for empty hash`() {
+        val mockMultipartFile = MockMultipartFile(
+            "file",
+            "htp://www.unizar.es/\nhtp://www.example.com/".toByteArray())
+        given(createShortUrlCsvUseCase.create(file = mockMultipartFile, data = ShortUrlProperties(ip = "127.0.0.1")))
+            .willReturn(CsvResponse("", "csv"))
+
+        mockMvc.perform(multipart("/api/bulk")
+            .file(mockMultipartFile))
+            .andDo(print())
+            .andExpect(status().isCreated)
+            .andExpect(header().string(CONTENT_TYPE, "text/csv"))
+            .andExpect(header().string("Warning","All URLs are invalid"))
+            .andExpect(header().string(LOCATION, "http://localhost/ALL_INVALID"))
     }
 }
