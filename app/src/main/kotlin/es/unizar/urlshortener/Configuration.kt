@@ -39,7 +39,7 @@ class ApplicationConfiguration(
     fun hashService() = HashServiceImpl()
 
     @Bean
-    fun rmqService() = RMQServiceImpl(rabbitTemplate, shortUrlRepositoryService(), validatorService(), hashService())
+    fun rmqService() = RMQServiceImpl(rabbitTemplate, shortUrlRepositoryService(), hashService(), validatorService())
 
     @Bean
     fun redirectUseCase() = RedirectUseCaseImpl(shortUrlRepositoryService())
@@ -65,7 +65,7 @@ class ApplicationConfiguration(
 
     @Bean
     fun createShortUrlCsvUseCase() =
-        CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), hashService(), rmqService())
+        CreateShortUrlCsvUseCaseImpl(shortUrlRepositoryService(), hashService(), validatorService(), rmqService())
 
     @Bean
     fun queue(): Queue? {

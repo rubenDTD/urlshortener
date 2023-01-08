@@ -44,5 +44,5 @@ interface HashService {
  */
 interface RMQService{
     fun listener(message: String)
-    fun send(uri: String, safe: Boolean, ip: String?, sponsor: String?)
+    fun send(uri: String, hash: String, safe: Boolean, ip: String?, sponsor: String?)
 }

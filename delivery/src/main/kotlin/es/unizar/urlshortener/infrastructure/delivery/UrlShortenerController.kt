@@ -16,7 +16,6 @@ import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
-import ru.chermenin.ua.UserAgent
 import java.net.URI
 import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest
@@ -106,7 +105,7 @@ class UrlShortenerControllerImpl(
         val redirection = redirectUseCase.redirectTo(id)
         logClickUseCase.logClick(id, ClickProperties(ip = request.remoteAddr, referrer = redirection.target))
         val h = HttpHeaders()
-        CoroutineScope(Dispatchers.IO).launch() {
+        CoroutineScope(Dispatchers.IO).launch {
             headersInfoUseCase.getBrowserAndPlatform(request.getHeader("User-Agent"), id)
         }
 
@@ -143,7 +142,7 @@ class UrlShortenerControllerImpl(
             )
         ).let {
             val hash = it.hash
-            CoroutineScope(Dispatchers.IO).launch() {
+            CoroutineScope(Dispatchers.IO).launch {
                 blackListUseCase.checkBlackList(request.remoteAddr, data.url, hash)
             }
             val h = HttpHeaders()
@@ -183,8 +182,7 @@ class UrlShortenerControllerImpl(
         try {
             val h = HttpHeaders()
             if (file.isEmpty) {
-                println("Empty")
-                h.location = linkTo<UrlShortenerControllerImpl> { redirectTo("ERROR", request) }.toUri()
+                h.location = linkTo<UrlShortenerControllerImpl> { redirectTo("EMPTY", request) }.toUri()
                 h.add("Warning", "Empty file")
                 return ResponseEntity<String>(h, HttpStatus.OK)
             } else {
@@ -196,14 +194,11 @@ class UrlShortenerControllerImpl(
                         )
                 )
                 if (s.hash.isEmpty()) {
-                    println("All invalid")
                     h.add("Warning", "All URLs are invalid")
-                    s.hash = "ERROR"
+                    s.hash = "ALL_INVALID"
                 }
                 val url = linkTo<UrlShortenerControllerImpl> { redirectTo(s.hash, request) }.toUri()
-                println(url)
                 h.location = url
-                println(h.location)
                 h.set("Content-Type", "text/csv")
                 h.set("Content-Disposition", "attachment; filename=shortURLs.csv")
                 h.set("Content-Length", s.csv.length.toString())
@@ -211,8 +206,7 @@ class UrlShortenerControllerImpl(
             }
         } catch (e: Exception) {
             val h = HttpHeaders()
-            println("Fail")
-            h.location = linkTo<UrlShortenerControllerImpl> { redirectTo("ERROR", request) }.toUri()
+            h.location = linkTo<UrlShortenerControllerImpl> { redirectTo("FAIL", request) }.toUri()
             h.add("Error", "Cannot read csv")
             h.set("Content-Type", "application/json")
             return ResponseEntity<String>(h, HttpStatus.BAD_REQUEST)

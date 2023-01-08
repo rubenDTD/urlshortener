@@ -1,8 +1,6 @@
 package es.unizar.urlshortener.infrastructure.repositories
 
 import es.unizar.urlshortener.core.*
-import java.io.*
-import java.nio.charset.StandardCharsets
 import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
@@ -53,31 +51,29 @@ class ShortUrlRepositoryServiceImpl(
 class RMQServiceImpl(
         private val rabbitTemplate: RabbitTemplate,
         private var shortUrlRepository: ShortUrlRepositoryService,
-        private val validatorService: ValidatorService,
-        private val hashService: HashService
+        private val hashService: HashService,
+        private val validatorService: ValidatorService
         ) : RMQService {
 
     override fun listener(message: String) {
-        val (uri,safe,ip,sponsor) = message.split("\\")
+        val (uri,hash,safe,ip,sponsor) = message.split("::")
         val isSafe = safe == "si"
-        if (validatorService.isValid(uri)) {
-            val hash = hashService.hasUrl(uri)
-            shortUrlRepository.save(ShortUrl(
-                    hash = hash,
-                    redirection = Redirection(target = uri),
-                    properties = ShortUrlProperties(
-                            safe = isSafe,
-                            ip = ip,
-                            sponsor = sponsor
-                    )
-            ))
-        }
+        //val hash = hashService.hasUrl(uri)
+        shortUrlRepository.save(ShortUrl(
+                hash = hash,
+                redirection = Redirection(target = uri),
+                properties = ShortUrlProperties(
+                        safe = isSafe,
+                        ip = ip,
+                        sponsor = sponsor
+                )
+        ))
     }
 
-    override fun send(uri: String, safe: Boolean, ip: String?, sponsor: String?) {
+    override fun send(uri: String, hash: String, safe: Boolean, ip: String?, sponsor: String?) {
         // Post a message on the queue
         val s = if(safe) "si" else "no"
-        val message = "$uri\\$s\\$ip\\$sponsor"
+        val message = "$uri::$hash::$s::$ip::$sponsor"
         rabbitTemplate.convertAndSend("exchange", "queue", message)
     }
 }

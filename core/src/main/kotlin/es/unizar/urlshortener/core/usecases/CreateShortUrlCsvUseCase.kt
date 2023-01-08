@@ -20,21 +20,23 @@ interface CreateShortUrlCsvUseCase {
 class CreateShortUrlCsvUseCaseImpl(
     private val shortUrlRepository: ShortUrlRepositoryService,
     private val hashService: HashService,
+    private val validatorService: ValidatorService,
     private val rabbitMQService: RMQService
 ) : CreateShortUrlCsvUseCase {
-    @Throws(BadRequestException::class)
+    //@Throws(BadRequestException::class)
     override fun create(file: MultipartFile, data: ShortUrlProperties): CsvResponse {
         val ret = CsvResponse("", "")
         file.inputStream.bufferedReader().forEachLine {
-            if(it == "throw") throw BadRequestException("Forced error for test")
-            rabbitMQService.send(it, data.safe, data.ip, data.sponsor)
+            //if(it == "throw") throw BadRequestException("Forced error for test")
+            if (validatorService.isValid(it)) rabbitMQService.send(it, hashService.hasUrl(it), data.safe, data.ip, data.sponsor)
         }
+        Thread.sleep(500)
         var found = false
         file.inputStream.bufferedReader().forEachLine {
             val hash = hashService.hasUrl(it)
+            if(!found && validatorService.isValid(it)) ret.hash = hash; found = true
             val shortUrl = shortUrlRepository.findByKey(hash)
             if(shortUrl != null) {
-                if(!found) ret.hash = shortUrl.hash; found = true
                 ret.csv += "$it,http://localhost:8080/${shortUrl.hash},\n"
             } else {
                 ret.csv += "$it,,debe ser una URI http o https\n"
