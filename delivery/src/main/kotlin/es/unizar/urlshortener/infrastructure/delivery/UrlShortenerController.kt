@@ -207,9 +207,9 @@ class UrlShortenerControllerImpl(
         } catch (e: Exception) {
             val h = HttpHeaders()
             h.location = linkTo<UrlShortenerControllerImpl> { redirectTo("FAIL", request) }.toUri()
-            h.add("Error", "Cannot read csv")
             h.set("Content-Type", "application/json")
-            return ResponseEntity<String>(h, HttpStatus.BAD_REQUEST)
+            return ResponseEntity<String>(e.message, h, HttpStatus.BAD_REQUEST)
         }
+
     }
 }

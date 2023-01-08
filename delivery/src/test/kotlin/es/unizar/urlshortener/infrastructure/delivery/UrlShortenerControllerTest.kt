@@ -257,17 +257,18 @@ class UrlShortenerControllerTest {
     }
 
     @Test
-    @Disabled
     fun `creates correct return for bad request`() {
         val mockMultipartFile = MockMultipartFile(
                 "file",
                 "throw".toByteArray())
         given(createShortUrlCsvUseCase.create(file = mockMultipartFile, data = ShortUrlProperties(ip = "127.0.0.1")))
-                .willReturn(CsvResponse("ERROR", ""))
+                .willAnswer { throw BadRequestException("Error - Cannot process uploaded file") }
 
         mockMvc.perform(multipart("/api/bulk")
                 .file(mockMultipartFile))
                 .andDo(print())
                 .andExpect(status().isBadRequest)
+                .andExpect(header().string(CONTENT_TYPE, "application/json"))
+                .andExpect(jsonPath("$").value("Error - Cannot process uploaded file"))
     }
 }
