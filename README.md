@@ -40,11 +40,30 @@ Features that require the connection to a third party or having more than a sing
 
 ## Run
 
+First you need to install and start the RabbitMQ service:
+
+On windows:
+```shell
+docker pull rabbitmq:3-management
+docker run -d -p 15672:15672 -p 5672:5672 --name rabbit-urlshortener rabbitmq:3-management
+```
+
+On linux:
+```shell
+sudo apt install rabbitmq-server
+sudo systemctl enable rabbitmq-server
+sudo rabbitmq-plugins enable rabbitmq_management
+```
+
+Then access to the RabbitMQ dashboard (http://localhost:15672) and login with "guest" as user and password
+
 The application can be run as follows:
 
 ```shell
 ./gradlew :app:bootRun
 ```
+
+===============\\\\\\\\\ BORRAR? YA NO FUNCIONA
 
 Now you have a shortener service running at port 8080. You can test that it works as follows:
 
@@ -91,6 +110,8 @@ $ curl -v http://localhost:8080/tiny-6bb9db44
 * Connection #0 to host localhost left intact
 ```
 
+===================\\\\\\\\\\
+
 ## Build and Run
 
 The uberjar can be built and then run with:
@@ -113,6 +134,21 @@ The project offers a minimum set of functionalities:
 * **Log redirects**.
   See in `core` the use case `LogClickUseCase` and in `delivery` the REST controller `UrlShortenerController`.
 
+* **Check URL in black list**.
+  See in `core` the use case `BlackListUseCase` and in `delivery` the REST controller `UrlShortenerController`.
+
+* **Create Short URLs from csv file**.
+  See in `core` the use case `CreateShortUrlCsvUseCase` and in `delivery` the REST controller `UrlShortenerController`.
+
+* **Get info from request's header**.
+  See in `core` the use case `HeadersInfoUseCase` and in `delivery` the REST controller `UrlShortenerController`.
+
+* **Show clicks summary from**.
+  See in `core` the use case `InfoSummaryUseCase` and in `delivery` the REST controller `UrlShortenerController`.
+
+* **Return clicks summary from URL**.
+  See in `core` the use case `SponsorUseCase` and in `delivery` the REST controller `UrlShortenerController`.
+
 The objects in the domain are:
 
 * `ShortUrl`: the minimum information about a short url
@@ -120,13 +156,16 @@ The objects in the domain are:
 * `ShortUrlProperties`: a handy way to extend data about a short url
 * `Click`: the minimum data captured when a redirection is logged
 * `ClickProperties`: a handy way to extend data about a click
+* `CsvResponse`: a handy way to extend data about the processed urls from a csv
 
 ## Delivery
 
 The above functionality is available through a simple API:
 
-* `POST /api/link` which creates a short URL from data send by a form.
+* `POST /api/link` which creates a short URL from data sent by a form.
+* `POST /api/bulk` which creates short URLs from a csv file sent by a form and downloads the resulting csv on a browser.
 * `GET /tiny-{id}` where `id` identifies the short url, deals with redirects, and logs use (i.e. clicks).
+* `GET /api/link/{id}` which shows the clicks summary of an URL.
 
 In addition, `GET /` returns the landing page of the system.
 
