@@ -63,55 +63,6 @@ The application can be run as follows:
 ./gradlew :app:bootRun
 ```
 
-===============\\\\\\\\\ BORRAR? YA NO FUNCIONA
-
-Now you have a shortener service running at port 8080. You can test that it works as follows:
-
-```shell
-$ curl -v -d "url=http://www.unizar.es/" http://localhost:8080/api/link
-*   Trying ::1:8080...
-* Connected to localhost (::1) port 8080 (#0)
-> POST /api/link HTTP/1.1
-> Host: localhost:8080
-> User-Agent: curl/7.71.1
-> Accept: */*
-> Content-Length: 25
-> Content-Type: application/x-www-form-urlencoded
-> 
-* upload completely sent off: 25 out of 25 bytes
-* Mark bundle as not supporting multiuse
-< HTTP/1.1 201 
-< Location: http://localhost:8080/tiny-6bb9db44
-< Content-Type: application/json
-< Transfer-Encoding: chunked
-< Date: Tue, 28 Sep 2021 17:06:01 GMT
-< 
-* Connection #0 to host localhost left intact
-{"url":"http://localhost:8080/tiny-6bb9db44","properties":{"safe":true}}%   
-```
-
-And now, we can navigate to the shortened URL.
-
-```shell
-$ curl -v http://localhost:8080/tiny-6bb9db44
-*   Trying ::1:8080...
-* Connected to localhost (::1) port 8080 (#0)
-> GET /tiny-6bb9db44 HTTP/1.1
-> Host: localhost:8080
-> User-Agent: curl/7.71.1
-> Accept: */*
-> 
-* Mark bundle as not supporting multiuse
-< HTTP/1.1 307 
-< Location: http://www.unizar.es/
-< Content-Length: 0
-< Date: Tue, 28 Sep 2021 17:07:34 GMT
-< 
-* Connection #0 to host localhost left intact
-```
-
-===================\\\\\\\\\\
-
 ## Build and Run
 
 The uberjar can be built and then run with:
@@ -195,3 +146,4 @@ The following guides illustrate how to use some features concretely:
 * [Building REST services with Spring](https://spring.io/guides/tutorials/rest/)
 * [Accessing Data with JPA](https://spring.io/guides/gs/accessing-data-jpa/)
 * [Messaging with RabbitMQ with Spring](https://spring.io/guides/gs/messaging-rabbitmq/)
+* [Setup SonarCloud for Gradle](https://www.baeldung.com/sonar-qube) (Solo en parte, pues al vincular SonarCloud con tu cuenta de github y el proyecto, el propio SonarCloud tiene una guia de un par de pasos sobre como añadirlo a gradle y al CI)
