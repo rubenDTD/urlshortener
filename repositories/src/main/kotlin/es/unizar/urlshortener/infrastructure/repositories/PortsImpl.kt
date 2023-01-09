@@ -54,13 +54,12 @@ class RMQServiceImpl(
         ) : RMQService {
 
     override fun listener(message: String) {
-        val (uri,hash,safe,ip,sponsor) = message.split("::")
-        val isSafe = safe == "si"
+        val (uri,hash,safe,ip,sponsor) = message.split(";")
         shortUrlRepository.save(ShortUrl(
                 hash = hash,
                 redirection = Redirection(target = uri),
                 properties = ShortUrlProperties(
-                        safe = isSafe,
+                        safe = safe == "si",
                         ip = ip,
                         sponsor = sponsor
                 )
@@ -70,7 +69,7 @@ class RMQServiceImpl(
     override fun send(uri: String, hash: String, safe: Boolean, ip: String?, sponsor: String?) {
         // Post a message on the queue
         val s = if(safe) "si" else "no"
-        val message = "$uri::$hash::$s::$ip::$sponsor"
+        val message = "$uri;$hash;$s;$ip;$sponsor"
         rabbitTemplate.convertAndSend("exchange", "queue", message)
     }
 }
